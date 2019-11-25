@@ -1,12 +1,16 @@
 grammar Ylang;
 
 code    : lines=line+ EOF ;
-line    : 
-        'def' 'external' fname=ID '(' (args=ID ':' types=ID)* ')' ':' rettype=ID # externFuncDef
-        | 'def' fname=ID '(' (args=ID ':' types=ID)* ')' ':' rettype=ID?
-        '{' '\n'? body=expr '}' ('\n' | ';')  # funcDef
-        | (name=ID '=' ) e=expr ('\n' | ';')        # varAssign
-        | e=expr ('\n' | ';')                       # exprExpr // for simplification    
+line    : d=defin                                    # definLine
+        | s=stmt                                     # stmtLine
+        ;
+defin   : 
+        'def' 'external' rettype=ID fname=ID '(' (type=ID arg=ID)* ')' '\n'+  # externFuncDef
+        | 'def' rettype=ID fname=ID '(' (type=ID arg=ID)* ')'
+        '{' '\n'? body=stmt* '}' '\n'+              # funcDef
+        ;
+stmt    : (name=ID '=' ) e=expr '\n'+               # varAssign
+        | e=expr '\n'+                              # exprExpr // for simplification    
         ;
 expr    : obj=expr ('->') name=ID                   # memberAccess
         | <assoc=right> lhs=expr op='^' rhs=expr    # infixExpr
@@ -31,5 +35,4 @@ ID      : [a-zA-Z_][a-zA-Z0-9_]* ;
 NUMBER  : [1-9][0-9]*
         | [0-9]+'.'[0-9]+ ;
 STRING  : '"' .*? '"' ;
-LINEEND : '\n' | ';' ;
 WS      : [ \t]+ -> skip ;

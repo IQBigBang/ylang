@@ -3,11 +3,11 @@
 
 Type* YlangVisitor::getTypeFromStr(std::string str)
 {
-    if (str == "num")
+    if (str == "Num")
         return Type::getDoubleTy(TheContext);
-    else if (str == "bool")
+    else if (str == "Bool")
         return Type::getInt1Ty(TheContext);
-    else if (str == "void")
+    else if (str == "Void")
         return Type::getVoidTy(TheContext);
     else {
         LogErrorV("Invalid type"); 
@@ -107,29 +107,25 @@ antlrcpp::Any YlangVisitor::visitExternFuncDef(YlangParser::ExternFuncDefContext
     for (auto id : context->ID())
     {
         ++i;
-        if (i == 0) continue; // function name
-        if (i % 2 == 1) continue; // arg name or return type
+        if (i == 0) continue; // return type
+        if (i % 2 == 1) continue; // arg name
         ArgTypes.push_back(getTypeFromStr(id->getText()));
     }
 
-    FunctionType* FT;
-    if (!context->rettype)
-        FT = FunctionType::get(Type::getVoidTy(TheContext), ArgTypes, false);
-    else 
-        FT = FunctionType::get(getTypeFromStr(context->rettype->getText()), ArgTypes, false);
+    FunctionType* FT
+        = FunctionType::get(getTypeFromStr(context->rettype->getText()), ArgTypes, false);
     
     Function* F = 
         Function::Create(FT, Function::ExternalLinkage, mangleFuncName(context->fname->getText(), ArgTypes), TheModule.get());
 
     // args
     NamedValues.clear();
-    i = 1;
+    i = 3;
     for (auto &Arg : F->args())
     {
         Arg.setName(context->ID()[i]->getText());
         NamedValues[Arg.getName()] = &Arg;
         i += 2;
-        if (context->rettype && i == context->ID().size() - 1) break; // last id is the return type but only if it's defined
     }
     return nullptr;
  
@@ -143,29 +139,25 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
     for (auto id : context->ID())
     {
         ++i;
-        if (i == 0) continue; // function name
-        if (i % 2 == 1) continue; // arg name or return type
+        if (i == 0) continue; // return type
+        if (i % 2 == 1) continue; // arg name
         ArgTypes.push_back(getTypeFromStr(id->getText()));
     }
 
-    FunctionType* FT;
-    if (!context->rettype)
-        FT = FunctionType::get(Type::getVoidTy(TheContext), ArgTypes, false);
-    else 
-        FT = FunctionType::get(getTypeFromStr(context->rettype->getText()), ArgTypes, false);
+    FunctionType* FT
+        = FunctionType::get(getTypeFromStr(context->rettype->getText()), ArgTypes, false);
         
     Function* F = 
         Function::Create(FT, Function::ExternalLinkage, mangleFuncName(context->fname->getText(), ArgTypes), TheModule.get());
 
     // args
     NamedValues.clear();
-    i = 1;
+    i = 3;
     for (auto &Arg : F->args())
     {
         Arg.setName(context->ID()[i]->getText());
         NamedValues[Arg.getName()] = &Arg;
         i += 2;
-        if (context->rettype && i == context->ID().size() - 1) break; // last id is the return type but only if it's defined
     }
 
     // body
@@ -188,6 +180,16 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
 antlrcpp::Any YlangVisitor::visitVarAssign(YlangParser::VarAssignContext *context) {
     std::cout << "Visiting varassign" << std::endl;
     return nullptr;
+}
+
+antlrcpp::Any YlangVisitor::visitDefinLine(YlangParser::DefinLineContext *context) {
+    std::cout << "Visiting definline" << std::endl;
+    return visit(context->d);
+}
+
+antlrcpp::Any YlangVisitor::visitStmtLine(YlangParser::StmtLineContext *context) {
+    std::cout << "Visiting stmtline" << std::endl;
+    return visit(context->s);
 }
 
 antlrcpp::Any YlangVisitor::visitExprExpr(YlangParser::ExprExprContext *context)

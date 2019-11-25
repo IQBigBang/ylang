@@ -1,3 +1,4 @@
 .vscode/*
 .antlr/*
 bin/ylang
+obj/*

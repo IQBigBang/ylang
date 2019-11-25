@@ -65,6 +65,10 @@ public:
 
     antlrcpp::Any visitVarAssign(YlangParser::VarAssignContext *context);
 
+    antlrcpp::Any visitDefinLine(YlangParser::DefinLineContext *context);
+
+    antlrcpp::Any visitStmtLine(YlangParser::StmtLineContext *context);
+
     antlrcpp::Any visitExprExpr(YlangParser::ExprExprContext *context);
 
     antlrcpp::Any visitAtomExpr(YlangParser::AtomExprContext *context);

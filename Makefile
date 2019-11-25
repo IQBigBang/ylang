@@ -20,15 +20,12 @@ PREFIXED_OBJECTS = $(addprefix $(OBJDIR),$(OBJECTS))
 
 all: $(OUTFILE)
 
-Ylang.g4:
+grammar: Ylang.g4
 	$(ANTLR) -o $(SRCDIR) -no-listener -visitor -Dlanguage=Cpp $<
 	sed -i 's|YlangVisitor.h|Visitor.h|g' $(SRCDIR)YlangParser.cpp
 	rm $(SRCDIR)YlangBaseVisitor.* $(SRCDIR)YlangVisitor.* $(SRCDIR)Ylang.* $(SRCDIR)YlangLexer.interp $(SRCDIR)YlangLexer.tokens
 	mv $(SRCDIR)YlangLexer.h $(INCLUDEDIR)YlangLexer.h
 	mv $(SRCDIR)YlangParser.h $(INCLUDEDIR)YlangParser.h
-
-$(SRCDIR)YlangLexer.cpp: Ylang.g4
-$(SRCDIR)YlangParser.cpp: Ylang.g4
 
 $(OBJDIR)%.o: $(SRCDIR)%.cpp
 	$(CXX) -c $(CPPFLAGS) -I$(INCLUDES) -Iinclude/ -o $@ $<
