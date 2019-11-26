@@ -1,6 +1,13 @@
 #include "stdio.h"
 
-void print(double a)
+void _WMain();
+
+void _Wprint_n(double d)
 {
-    printf("%f", a);
+    printf("%f\n", d);
+}
+
+int main() {
+    _WMain();
+    return 0;
 }

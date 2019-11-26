@@ -33,6 +33,9 @@ $(OBJDIR)%.o: $(SRCDIR)%.cpp
 $(OUTFILE): $(PREFIXED_OBJECTS)
 	$(CXX) $(CPPFLAGS) -o $@ $^ $(LIBS)
 
+std: stdlib/Std.c
+	clang -c stdlib/Std.c -o stdlib/Std.o
+
 clean:
 	rm -rf $(OBJDIR)*.*
 

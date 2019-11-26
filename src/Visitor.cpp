@@ -32,6 +32,16 @@ YlangVisitor::YlangVisitor() : antlr4::tree::AbstractParseTreeVisitor(), Builder
     PB.registerFunctionAnalyses(TheAnalysisManager);
     ThePassManager = 
         PB.buildFunctionSimplificationPipeline(PassBuilder::OptimizationLevel::O2, PassBuilder::ThinLTOPhase::None);
+
+    // stdlib integration
+    // Void print(Num n)
+    Function* F = Function::Create(
+       FunctionType::get(
+           Type::getVoidTy(TheContext),
+           {Type::getDoubleTy(TheContext)},
+            false
+       ), Function::ExternalLinkage, "_Wprint_n", TheModule.get() 
+    );
 }
 
 void YlangVisitor::prepareEmit()
@@ -85,7 +95,7 @@ void YlangVisitor::Emit(std::string filename)
     pass.run(*TheModule);
     dest.flush();
 
-    std::cout << "Object file succesfully written" << std::endl;
+    //std::cout << "Object file succesfully written" << std::endl;
 }
 
 std::string YlangVisitor::mangleFuncName(std::string fname, std::vector<Type*> args)
@@ -109,13 +119,13 @@ std::string YlangVisitor::mangleFuncName(std::string fname, std::vector<Type*> a
 
 antlrcpp::Any YlangVisitor::visitCode(YlangParser::CodeContext *context)
 {
-    std::cout << "Visiting code" << std::endl;
+    //std::cout << "Visiting code" << std::endl;
     return visitChildren(context);
 }
 
 antlrcpp::Any YlangVisitor::visitExternFuncDef(YlangParser::ExternFuncDefContext *context)
 {
-    std::cout << "Visiting extern function definition" << std::endl;   
+    //std::cout << "Visiting extern function definition" << std::endl;   
     std::vector<Type*> ArgTypes;
     int i = -1;
     for (auto id : context->ID())
@@ -138,7 +148,7 @@ antlrcpp::Any YlangVisitor::visitExternFuncDef(YlangParser::ExternFuncDefContext
 
 antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
 {
-    std::cout << "Visiting function definition" << std::endl;
+    //std::cout << "Visiting function definition" << std::endl;
     std::vector<Type*> ArgTypes;
     int i = -1;
     for (auto id : context->ID())
@@ -175,6 +185,8 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
     // body
     for (auto s : context->stmt())
         visit(s);
+    if (F->getReturnType()->isVoidTy())
+        Builder.CreateRetVoid();
     if (verifyFunction(*F, &errs()))
     {
         return LogErrorV("Error generating function body");
@@ -192,7 +204,7 @@ antlrcpp::Any YlangVisitor::visitRetExpr(YlangParser::RetExprContext *context)
 
 
 antlrcpp::Any YlangVisitor::visitVarAssign(YlangParser::VarAssignContext *context) {
-    std::cout << "Visiting varassign" << std::endl;
+    //std::cout << "Visiting varassign" << std::endl;
     Value* V = visit(context->e);
     if (!V)
         return nullptr;
@@ -211,36 +223,36 @@ antlrcpp::Any YlangVisitor::visitVarAssign(YlangParser::VarAssignContext *contex
 }
 
 antlrcpp::Any YlangVisitor::visitDefinLine(YlangParser::DefinLineContext *context) {
-    std::cout << "Visiting definline" << std::endl;
+    //std::cout << "Visiting definline" << std::endl;
     return visit(context->d);
 }
 
 antlrcpp::Any YlangVisitor::visitStmtLine(YlangParser::StmtLineContext *context) {
-    std::cout << "Visiting stmtline" << std::endl;
+    //std::cout << "Visiting stmtline" << std::endl;
     return visit(context->s);
 }
 
 antlrcpp::Any YlangVisitor::visitExprExpr(YlangParser::ExprExprContext *context)
 {
-    std::cout << "Visiting exprexpr" << std::endl;
+    //std::cout << "Visiting exprexpr" << std::endl;
     return visit(context->e);
 }
 
 antlrcpp::Any YlangVisitor::visitAtomExpr(YlangParser::AtomExprContext *context)
 {
-    std::cout << "Visiting atomexpr" << std::endl;
+    //std::cout << "Visiting atomexpr" << std::endl;
     return visit(context->a);
 }
 
 antlrcpp::Any YlangVisitor::visitAtomAtom(YlangParser::AtomAtomContext *context)
 {
-    std::cout << "Visiting atomatom" << std::endl;
+    //std::cout << "Visiting atomatom" << std::endl;
     return visit(context->a);
 }
 
 antlrcpp::Any YlangVisitor::visitCallExpr(YlangParser::CallExprContext *context)
 {
-    std::cout << "Visiting callexpr" << std::endl;
+    //std::cout << "Visiting callexpr" << std::endl;
     
     std::vector<Value*> Args;
     std::vector<Type*> ArgTypes;
@@ -263,14 +275,14 @@ antlrcpp::Any YlangVisitor::visitCallExpr(YlangParser::CallExprContext *context)
 antlrcpp::Any YlangVisitor::visitNumber(YlangParser::NumberContext *context)
 {
     double d = std::stod(context->getText());
-    std::cout << "Visiting number " << d << std::endl;
+    //std::cout << "Visiting number " << d << std::endl;
     lastValType = Type::getDoubleTy(TheContext);
     return (Value*)ConstantFP::get(TheContext, APFloat(d));
 }
 
 antlrcpp::Any YlangVisitor::visitBool(YlangParser::BoolContext *context)
 {
-    std::cout << "Visiting bool" << std::endl;
+    //std::cout << "Visiting bool" << std::endl;
     lastValType = Type::getInt1Ty(TheContext);
     if (context->getText() == "true")
         return (Value*)ConstantInt::get(TheContext, APInt(1, 1, false));
@@ -281,13 +293,13 @@ antlrcpp::Any YlangVisitor::visitBool(YlangParser::BoolContext *context)
 }
 
 antlrcpp::Any YlangVisitor::visitMemberAccess(YlangParser::MemberAccessContext *context) {
-    std::cout << "Visiting memberaccess" << std::endl;
+    //std::cout << "Visiting memberaccess" << std::endl;
     return nullptr;
 }
 
 antlrcpp::Any YlangVisitor::visitInfixExpr(YlangParser::InfixExprContext *context)
 {
-    std::cout << "Visiting infixexpr" << std::endl;
+    //std::cout << "Visiting infixexpr" << std::endl;
     Value* left = visit(context->lhs).as<Value*>();
     auto leftTy = lastValType;
     Value* right = visit(context->rhs).as<Value*>();
@@ -339,7 +351,7 @@ antlrcpp::Any YlangVisitor::visitInfixExpr(YlangParser::InfixExprContext *contex
 }
 
 antlrcpp::Any YlangVisitor::visitString(YlangParser::StringContext *context) {
-    std::cout << "Visiting string" << std::endl;
+    //std::cout << "Visiting string" << std::endl;
     return nullptr;
 }
 
@@ -353,6 +365,6 @@ antlrcpp::Any YlangVisitor::visitVariable(YlangParser::VariableContext *context)
 }
 
 antlrcpp::Any YlangVisitor::visitParenExpr(YlangParser::ParenExprContext *context) {
-    std::cout << "Visiting parenexpr" << std::endl;
+    //std::cout << "Visiting parenexpr" << std::endl;
     return visit(context->e);
 }

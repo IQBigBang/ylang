@@ -104,9 +104,11 @@ public:
         return nullptr;
     };
 
-    void print()
+    void print(std::string outFile)
     {
-        TheModule->print(errs(), nullptr, false, true);
+        std::error_code EC;
+        raw_fd_ostream out((StringRef)outFile, EC, sys::fs::OpenFlags::F_None);
+        TheModule->print(out, nullptr, false, true);
     };
 
     void Emit(std::string filename);
