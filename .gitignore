@@ -3,4 +3,4 @@
 bin/ylang
 obj/*
 ytest.o
-.gitignore
+test/*

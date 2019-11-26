@@ -27,6 +27,11 @@ AllocaInst* YlangVisitor::putAllocaInst(Function *F, std::string Name)
 YlangVisitor::YlangVisitor() : antlr4::tree::AbstractParseTreeVisitor(), Builder(TheContext)
 {
     TheModule = std::make_unique<Module>("ylang", TheContext);
+
+    PassBuilder PB;
+    PB.registerFunctionAnalyses(TheAnalysisManager);
+    ThePassManager = 
+        PB.buildFunctionSimplificationPipeline(PassBuilder::OptimizationLevel::O2, PassBuilder::ThinLTOPhase::None);
 }
 
 void YlangVisitor::prepareEmit()
@@ -170,11 +175,11 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
     // body
     for (auto s : context->stmt())
         visit(s);
-    Builder.CreateRetVoid(); // to make sure function returns something in case of any error
-    if (verifyFunction(*F))
+    if (verifyFunction(*F, &errs()))
     {
-        LogErrorV("Error generating function body");
+        return LogErrorV("Error generating function body");
     }
+    ThePassManager.run(*F, TheAnalysisManager);
     return nullptr;
 }
 

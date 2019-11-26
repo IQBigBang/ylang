@@ -11,10 +11,12 @@ Enhancements:
 - While statement
 - Structs
 - Syntax simplification
+- External and unmangled functions
 
 New features:
 - JIT compiler
-- Optimizer
+- ~~Optimizer~~
+- Sum types
 - Pointers
 - Full std library
 - Type inference

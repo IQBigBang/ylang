@@ -4,10 +4,10 @@
 #include "Visitor.h"
 
 int main(int argc, const char* argv[]) {
-    //std::ifstream stream;
-    //stream.open("input.scene");
+    std::ifstream stream;
+    stream.open("test/src.yy");
     
-    antlr4::ANTLRInputStream input(std::cin);
+    antlr4::ANTLRInputStream input(stream);
     YlangLexer lexer(&input);
     antlr4::CommonTokenStream tokens(&lexer);
     YlangParser parser(&tokens);
@@ -16,7 +16,7 @@ int main(int argc, const char* argv[]) {
     visitor.prepareEmit();
     visitor.visitCode(tree);
     visitor.print();
-    visitor.Emit("ytest.o");
+    visitor.Emit("test/bin.o");
     // link object file
     
     return 0;
