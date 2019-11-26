@@ -9,7 +9,8 @@ defin   :
         | 'def' rettype=ID fname=ID '(' (type=ID arg=ID)* ')'
         '{' '\n'? body=stmt* '}' '\n'+              # funcDef
         ;
-stmt    : (name=ID '=' ) e=expr '\n'+               # varAssign
+stmt    : name=ID '=' e=expr '\n'+                  # varAssign
+        | 'return' e=expr '\n'+                     # retExpr
         | e=expr '\n'+                              # exprExpr // for simplification    
         ;
 expr    : obj=expr ('->') name=ID                   # memberAccess

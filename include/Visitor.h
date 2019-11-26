@@ -65,6 +65,8 @@ public:
 
     antlrcpp::Any visitVarAssign(YlangParser::VarAssignContext *context);
 
+    antlrcpp::Any visitRetExpr(YlangParser::RetExprContext *context);
+
     antlrcpp::Any visitDefinLine(YlangParser::DefinLineContext *context);
 
     antlrcpp::Any visitStmtLine(YlangParser::StmtLineContext *context);
@@ -110,11 +112,14 @@ public:
 
     std::string mangleFuncName(std::string fname, std::vector<Type*> args);
 
+    // Put alloca instruction at the top of a function and return it
+    AllocaInst* putAllocaInst(Function *F, std::string Name);
+
 private:
     LLVMContext TheContext;
     IRBuilder<> Builder;
     std::unique_ptr<Module> TheModule;
-    std::map<std::string, Value*> NamedValues;
+    std::map<std::string, std::pair<AllocaInst*, Type*>> NamedValues;
     TargetMachine* Machine;
     Type* lastValType;
 };

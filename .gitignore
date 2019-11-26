@@ -2,3 +2,5 @@
 .antlr/*
 bin/ylang
 obj/*
+ytest.o
+.gitignore

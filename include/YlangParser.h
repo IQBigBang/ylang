@@ -15,8 +15,8 @@ public:
     T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, T__6 = 7, 
     T__7 = 8, T__8 = 9, T__9 = 10, T__10 = 11, T__11 = 12, T__12 = 13, T__13 = 14, 
     T__14 = 15, T__15 = 16, T__16 = 17, T__17 = 18, T__18 = 19, T__19 = 20, 
-    T__20 = 21, T__21 = 22, T__22 = 23, ID = 24, NUMBER = 25, STRING = 26, 
-    WS = 27
+    T__20 = 21, T__21 = 22, T__22 = 23, T__23 = 24, ID = 25, NUMBER = 26, 
+    STRING = 27, WS = 28
   };
 
   enum {
@@ -156,14 +156,23 @@ public:
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
+  class  RetExprContext : public StmtContext {
+  public:
+    RetExprContext(StmtContext *ctx);
+
+    YlangParser::ExprContext *e = nullptr;
+    ExprContext *expr();
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
   class  VarAssignContext : public StmtContext {
   public:
     VarAssignContext(StmtContext *ctx);
 
     antlr4::Token *name = nullptr;
     YlangParser::ExprContext *e = nullptr;
-    ExprContext *expr();
     antlr4::tree::TerminalNode *ID();
+    ExprContext *expr();
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 

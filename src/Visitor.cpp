@@ -15,6 +15,15 @@ Type* YlangVisitor::getTypeFromStr(std::string str)
     }
 }
 
+AllocaInst* YlangVisitor::putAllocaInst(Function *F, std::string Name)
+{
+    IRBuilder<> tmpB(
+        &(F->getEntryBlock()), 
+        F->getEntryBlock().begin());
+    return tmpB.CreateAlloca(lastValType, 0, Name);
+}
+
+
 YlangVisitor::YlangVisitor() : antlr4::tree::AbstractParseTreeVisitor(), Builder(TheContext)
 {
     TheModule = std::make_unique<Module>("ylang", TheContext);
@@ -118,15 +127,6 @@ antlrcpp::Any YlangVisitor::visitExternFuncDef(YlangParser::ExternFuncDefContext
     Function* F = 
         Function::Create(FT, Function::ExternalLinkage, mangleFuncName(context->fname->getText(), ArgTypes), TheModule.get());
 
-    // args
-    NamedValues.clear();
-    i = 3;
-    for (auto &Arg : F->args())
-    {
-        Arg.setName(context->ID()[i]->getText());
-        NamedValues[Arg.getName()] = &Arg;
-        i += 2;
-    }
     return nullptr;
  
 }
@@ -150,36 +150,59 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
     Function* F = 
         Function::Create(FT, Function::ExternalLinkage, mangleFuncName(context->fname->getText(), ArgTypes), TheModule.get());
 
+    // entry block
+    BasicBlock* BB = BasicBlock::Create(TheContext, "entry", F);
+    Builder.SetInsertPoint(BB);
+
     // args
     NamedValues.clear();
     i = 3;
     for (auto &Arg : F->args())
     {
         Arg.setName(context->ID()[i]->getText());
-        NamedValues[Arg.getName()] = &Arg;
+        lastValType = ArgTypes[(i - 3) / 2]; // putallocainst depends on this variable
+        AllocaInst* all = putAllocaInst(F, Arg.getName());
+        Builder.CreateStore(&Arg, all);
+        NamedValues[Arg.getName()] = std::make_pair<>(all, lastValType);
         i += 2;
     }
 
     // body
-    BasicBlock* BB = BasicBlock::Create(TheContext, "entry", F);
-    Builder.SetInsertPoint(BB);
-    if (Value* ret = visit(context->body))
+    for (auto s : context->stmt())
+        visit(s);
+    Builder.CreateRetVoid(); // to make sure function returns something in case of any error
+    if (verifyFunction(*F))
     {
-        if (F->getReturnType()->isVoidTy())
-            Builder.CreateRetVoid();
-        else 
-            Builder.CreateRet(ret);
-        verifyFunction(*F);
-    } else
-    {
-        return LogErrorV("Error generating function body");
+        LogErrorV("Error generating function body");
     }
     return nullptr;
 }
 
+antlrcpp::Any YlangVisitor::visitRetExpr(YlangParser::RetExprContext *context)
+{
+    Value* V = visit(context->e);
+    Builder.CreateRet(V);
+    return nullptr;
+}
+
+
 antlrcpp::Any YlangVisitor::visitVarAssign(YlangParser::VarAssignContext *context) {
     std::cout << "Visiting varassign" << std::endl;
-    return nullptr;
+    Value* V = visit(context->e);
+    if (!V)
+        return nullptr;
+
+    if (NamedValues.count(context->name->getText()) == 0)
+    {
+        AllocaInst* all = putAllocaInst(Builder.GetInsertBlock()->getParent(), context->name->getText());
+        NamedValues[context->name->getText()] = std::make_pair<>(all, lastValType);
+        Builder.CreateStore(V, all);
+    } else
+    {
+        auto Var = NamedValues[context->name->getText()];
+        Builder.CreateStore(V, Var.first);
+    }
+    return V;
 }
 
 antlrcpp::Any YlangVisitor::visitDefinLine(YlangParser::DefinLineContext *context) {
@@ -316,11 +339,12 @@ antlrcpp::Any YlangVisitor::visitString(YlangParser::StringContext *context) {
 }
 
 antlrcpp::Any YlangVisitor::visitVariable(YlangParser::VariableContext *context) {
-    Value* V = NamedValues[context->name->getText()];
-    lastValType = V->getType();
-    if (!V)
+    if (NamedValues.count(context->name->getText()) == 0)
         return LogErrorV("Undefined variable");
-    return V;
+    
+    auto Var = NamedValues[context->name->getText()];
+    lastValType = Var.second;
+    return (Value*)Builder.CreateLoad(Var.first, context->name->getText());
 }
 
 antlrcpp::Any YlangVisitor::visitParenExpr(YlangParser::ParenExprContext *context) {
