@@ -64,6 +64,10 @@ public:
 
     antlrcpp::Any visitFuncDef(YlangParser::FuncDefContext *context);
 
+    antlrcpp::Any visitStmtBlock(YlangParser::StmtBlockContext *context);
+
+    antlrcpp::Any visitBlockBlock(YlangParser::BlockBlockContext *context);
+
     antlrcpp::Any visitVarAssign(YlangParser::VarAssignContext *context);
 
     antlrcpp::Any visitRetExpr(YlangParser::RetExprContext *context);

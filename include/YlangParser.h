@@ -20,8 +20,8 @@ public:
   };
 
   enum {
-    RuleCode = 0, RuleLine = 1, RuleDefin = 2, RuleStmt = 3, RuleExpr = 4, 
-    RuleFnatom = 5, RuleAtom = 6
+    RuleCode = 0, RuleLine = 1, RuleDefin = 2, RuleBlock = 3, RuleStmt = 4, 
+    RuleExpr = 5, RuleFnatom = 6, RuleAtom = 7
   };
 
   YlangParser(antlr4::TokenStream *input);
@@ -37,6 +37,7 @@ public:
   class CodeContext;
   class LineContext;
   class DefinContext;
+  class BlockContext;
   class StmtContext;
   class ExprContext;
   class FnatomContext;
@@ -124,15 +125,46 @@ public:
     antlr4::Token *fname = nullptr;
     antlr4::Token *type = nullptr;
     antlr4::Token *arg = nullptr;
-    YlangParser::StmtContext *body = nullptr;
+    YlangParser::BlockContext *body = nullptr;
     std::vector<antlr4::tree::TerminalNode *> ID();
     antlr4::tree::TerminalNode* ID(size_t i);
+    BlockContext *block();
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  DefinContext* defin();
+
+  class  BlockContext : public antlr4::ParserRuleContext {
+  public:
+    BlockContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+   
+    BlockContext() : antlr4::ParserRuleContext() { }
+    void copyFrom(BlockContext *context);
+    using antlr4::ParserRuleContext::copyFrom;
+
+    virtual size_t getRuleIndex() const override;
+
+   
+  };
+
+  class  StmtBlockContext : public BlockContext {
+  public:
+    StmtBlockContext(BlockContext *ctx);
+
+    StmtContext *stmt();
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  class  BlockBlockContext : public BlockContext {
+  public:
+    BlockBlockContext(BlockContext *ctx);
+
     std::vector<StmtContext *> stmt();
     StmtContext* stmt(size_t i);
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
-  DefinContext* defin();
+  BlockContext* block();
 
   class  StmtContext : public antlr4::ParserRuleContext {
   public:

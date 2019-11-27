@@ -183,8 +183,7 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
     }
 
     // body
-    for (auto s : context->stmt())
-        visit(s);
+    visit(context->body);
     if (F->getReturnType()->isVoidTy())
         Builder.CreateRetVoid();
     if (verifyFunction(*F, &errs()))
@@ -192,6 +191,20 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
         return LogErrorV("Error generating function body");
     }
     ThePassManager.run(*F, TheAnalysisManager);
+    return nullptr;
+}
+
+antlrcpp::Any YlangVisitor::visitStmtBlock(YlangParser::StmtBlockContext *context)
+{
+    // std::cout << "Visiting stmtblock " << std::endl;
+    return visitChildren(context);
+}
+
+antlrcpp::Any YlangVisitor::visitBlockBlock(YlangParser::BlockBlockContext *context)
+{
+    // std::cout << "Visiting blockblock" << std::endl;
+    for (auto s : context->stmt())
+        visit(s);
     return nullptr;
 }
 

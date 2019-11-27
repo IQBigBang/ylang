@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
     args::Positional<std::string> source(argParser, "source", "Source file path", args::Options::Required);
     args::Group outputFormatsGroup(argParser, "Output file type formats", args::Group::Validators::AtMostOne);
     args::Flag outputFormatIR(outputFormatsGroup, "output IR", "Emit LLVM Immediate Representation", {"ir"});
-    args::Flag outputFormatObj(outputFormatsGroup, "output object", "Emit native object file", {'o'});
+    args::Flag outputFormatObj(outputFormatsGroup, "output object", "Emit native object file", {"obj"});
     args::ValueFlag<std::string> output(argParser, "output", "Output file path", {'o'});
 
     try

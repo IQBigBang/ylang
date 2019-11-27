@@ -5,9 +5,11 @@ line    : d=defin                                    # definLine
         | s=stmt                                     # stmtLine
         ;
 defin   : 
-        'def' 'external' rettype=ID fname=ID '(' (type=ID arg=ID)* ')' '\n'+  # externFuncDef
-        | 'def' rettype=ID fname=ID '(' (type=ID arg=ID)* ')'
-        '{' '\n'? body=stmt* '}' '\n'+              # funcDef
+        'def' 'external' rettype=ID fname=ID '(' (type=ID arg=ID)* ')' '\n'*    # externFuncDef
+        | 'def' rettype=ID fname=ID '(' (type=ID arg=ID)* ')' body=block '\n'*  # funcDef
+        ;
+block   : '\n'? stmt                                # stmtBlock
+        | '{' '\n'* stmt* '\n'* '}'                 # blockBlock
         ;
 stmt    : name=ID '=' e=expr '\n'+                  # varAssign
         | 'return' e=expr '\n'+                     # retExpr

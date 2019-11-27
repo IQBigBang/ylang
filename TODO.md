@@ -9,11 +9,13 @@ Enhancements:
 - ~~Local variables~~
 - ~~Multistatement functions and return statement~~
 - If statement
+- Switch statement
 - While statement
 - Structs
 - Syntax simplification
 - External and unmangled functions
 - Better error reporting
+- Strings
 
 New features:
 - JIT compiler
@@ -24,4 +26,5 @@ New features:
 - Type inference
 - ~~CLI~~
 - Extend CLI
+- Write custom lexer nad parser
 - ~~Minimal std integration~~
