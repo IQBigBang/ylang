@@ -15,13 +15,13 @@ public:
     T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, T__6 = 7, 
     T__7 = 8, T__8 = 9, T__9 = 10, T__10 = 11, T__11 = 12, T__12 = 13, T__13 = 14, 
     T__14 = 15, T__15 = 16, T__16 = 17, T__17 = 18, T__18 = 19, T__19 = 20, 
-    T__20 = 21, T__21 = 22, T__22 = 23, T__23 = 24, ID = 25, NUMBER = 26, 
-    STRING = 27, WS = 28
+    T__20 = 21, T__21 = 22, T__22 = 23, T__23 = 24, T__24 = 25, ID = 26, 
+    NUMBER = 27, STRING = 28, WS = 29
   };
 
   enum {
-    RuleCode = 0, RuleLine = 1, RuleDefin = 2, RuleBlock = 3, RuleStmt = 4, 
-    RuleExpr = 5, RuleFnatom = 6, RuleAtom = 7
+    RuleCode = 0, RuleLine = 1, RuleDefin = 2, RuleExpr = 3, RuleFnatom = 4, 
+    RuleAtom = 5
   };
 
   YlangParser(antlr4::TokenStream *input);
@@ -37,8 +37,6 @@ public:
   class CodeContext;
   class LineContext;
   class DefinContext;
-  class BlockContext;
-  class StmtContext;
   class ExprContext;
   class FnatomContext;
   class AtomContext; 
@@ -80,15 +78,6 @@ public:
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
-  class  StmtLineContext : public LineContext {
-  public:
-    StmtLineContext(LineContext *ctx);
-
-    YlangParser::StmtContext *s = nullptr;
-    StmtContext *stmt();
-    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
   LineContext* line();
 
   class  DefinContext : public antlr4::ParserRuleContext {
@@ -125,90 +114,14 @@ public:
     antlr4::Token *fname = nullptr;
     antlr4::Token *type = nullptr;
     antlr4::Token *arg = nullptr;
-    YlangParser::BlockContext *body = nullptr;
+    YlangParser::ExprContext *body = nullptr;
     std::vector<antlr4::tree::TerminalNode *> ID();
     antlr4::tree::TerminalNode* ID(size_t i);
-    BlockContext *block();
+    ExprContext *expr();
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
   DefinContext* defin();
-
-  class  BlockContext : public antlr4::ParserRuleContext {
-  public:
-    BlockContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-   
-    BlockContext() : antlr4::ParserRuleContext() { }
-    void copyFrom(BlockContext *context);
-    using antlr4::ParserRuleContext::copyFrom;
-
-    virtual size_t getRuleIndex() const override;
-
-   
-  };
-
-  class  StmtBlockContext : public BlockContext {
-  public:
-    StmtBlockContext(BlockContext *ctx);
-
-    StmtContext *stmt();
-    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  class  BlockBlockContext : public BlockContext {
-  public:
-    BlockBlockContext(BlockContext *ctx);
-
-    std::vector<StmtContext *> stmt();
-    StmtContext* stmt(size_t i);
-    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  BlockContext* block();
-
-  class  StmtContext : public antlr4::ParserRuleContext {
-  public:
-    StmtContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-   
-    StmtContext() : antlr4::ParserRuleContext() { }
-    void copyFrom(StmtContext *context);
-    using antlr4::ParserRuleContext::copyFrom;
-
-    virtual size_t getRuleIndex() const override;
-
-   
-  };
-
-  class  ExprExprContext : public StmtContext {
-  public:
-    ExprExprContext(StmtContext *ctx);
-
-    YlangParser::ExprContext *e = nullptr;
-    ExprContext *expr();
-    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  class  RetExprContext : public StmtContext {
-  public:
-    RetExprContext(StmtContext *ctx);
-
-    YlangParser::ExprContext *e = nullptr;
-    ExprContext *expr();
-    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  class  VarAssignContext : public StmtContext {
-  public:
-    VarAssignContext(StmtContext *ctx);
-
-    antlr4::Token *name = nullptr;
-    YlangParser::ExprContext *e = nullptr;
-    antlr4::tree::TerminalNode *ID();
-    ExprContext *expr();
-    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  StmtContext* stmt();
 
   class  ExprContext : public antlr4::ParserRuleContext {
   public:
@@ -246,12 +159,37 @@ public:
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
+  class  IfExprContext : public ExprContext {
+  public:
+    IfExprContext(ExprContext *ctx);
+
+    YlangParser::ExprContext *cond = nullptr;
+    YlangParser::ExprContext *thenT = nullptr;
+    YlangParser::ExprContext *elseT = nullptr;
+    std::vector<ExprContext *> expr();
+    ExprContext* expr(size_t i);
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
   class  AtomExprContext : public ExprContext {
   public:
     AtomExprContext(ExprContext *ctx);
 
     YlangParser::FnatomContext *a = nullptr;
     FnatomContext *fnatom();
+    virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  class  LetInExprContext : public ExprContext {
+  public:
+    LetInExprContext(ExprContext *ctx);
+
+    antlr4::Token *name = nullptr;
+    YlangParser::ExprContext *val = nullptr;
+    YlangParser::ExprContext *e = nullptr;
+    antlr4::tree::TerminalNode *ID();
+    std::vector<ExprContext *> expr();
+    ExprContext* expr(size_t i);
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
@@ -275,10 +213,10 @@ public:
     CallExprContext(FnatomContext *ctx);
 
     antlr4::Token *fname = nullptr;
-    YlangParser::AtomContext *args = nullptr;
+    YlangParser::ExprContext *args = nullptr;
     antlr4::tree::TerminalNode *ID();
-    std::vector<AtomContext *> atom();
-    AtomContext* atom(size_t i);
+    std::vector<ExprContext *> expr();
+    ExprContext* expr(size_t i);
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 

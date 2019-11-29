@@ -10,6 +10,7 @@ int main(int argc, char** argv) {
     args::Group outputFormatsGroup(argParser, "Output file type formats", args::Group::Validators::AtMostOne);
     args::Flag outputFormatIR(outputFormatsGroup, "output IR", "Emit LLVM Immediate Representation", {"ir"});
     args::Flag outputFormatObj(outputFormatsGroup, "output object", "Emit native object file", {"obj"});
+    args::Flag outputFormatRun(outputFormatsGroup, "run immediately", "Run code immediately after compilation and linking", {'r'});
     args::ValueFlag<std::string> output(argParser, "output", "Output file path", {'o'});
 
     try
@@ -45,7 +46,8 @@ int main(int argc, char** argv) {
     YlangVisitor visitor;
 
     std::string outfile;
-    if (output) outfile = args::get(output); 
+    if (outputFormatRun) outfile = "test/bin";
+    else if (output) outfile = args::get(output); 
     else {
         if (outputFormatIR)
             outfile = "test/bin.ll";
@@ -67,6 +69,11 @@ int main(int argc, char** argv) {
         visitor.Emit("tmp.o");
         system(("g++ tmp.o stdlib/Std.o -o " + outfile).c_str());
         system("rm tmp.o");
+        if (outputFormatRun)
+        {
+            system("./test/bin");
+            system("rm test/bin");
+        }
     }
     
     return 0;

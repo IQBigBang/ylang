@@ -183,9 +183,14 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
     }
 
     // body
-    visit(context->body);
+    Value* v = visit(context->body);
+    if (v->getType() != getTypeFromStr(context->rettype->getText()))
+        return LogErrorV("Non-matching type returned");
+    // insert dummy ret
     if (F->getReturnType()->isVoidTy())
         Builder.CreateRetVoid();
+    else
+        Builder.CreateRet(v);
     if (verifyFunction(*F, &errs()))
     {
         return LogErrorV("Error generating function body");
@@ -194,61 +199,70 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
     return nullptr;
 }
 
-antlrcpp::Any YlangVisitor::visitStmtBlock(YlangParser::StmtBlockContext *context)
+/* antlrcpp::Any YlangVisitor::visitSwitchStmt(YlangParser::SwitchStmtContext *context)
 {
-    // std::cout << "Visiting stmtblock " << std::endl;
-    return visitChildren(context);
-}
-
-antlrcpp::Any YlangVisitor::visitBlockBlock(YlangParser::BlockBlockContext *context)
-{
-    // std::cout << "Visiting blockblock" << std::endl;
-    for (auto s : context->stmt())
-        visit(s);
+    // std::cout << "Visiting switchstmt" << std::endl;
     return nullptr;
 }
 
-antlrcpp::Any YlangVisitor::visitRetExpr(YlangParser::RetExprContext *context)
+*/
+
+antlrcpp::Any YlangVisitor::visitIfExpr(YlangParser::IfExprContext *context)
 {
-    Value* V = visit(context->e);
-    Builder.CreateRet(V);
-    return nullptr;
+    // std::cout << "Visiting ifstmt" << std::endl;
+    Value* cond = visit(context->cond);
+    if (!lastValType->isIntegerTy(1))
+        return LogErrorV("If statement requires a boolean");
+    
+    Function* currF = Builder.GetInsertBlock()->getParent();
+    
+    BasicBlock* thenBlock = BasicBlock::Create(TheContext, "then", currF);
+    BasicBlock* elseBlock = BasicBlock::Create(TheContext, "else");
+    BasicBlock* endBlock = BasicBlock::Create(TheContext, "ifend");
+
+    Builder.CreateCondBr(cond, thenBlock, elseBlock);
+
+    Builder.SetInsertPoint(thenBlock);
+    Value* thenVal = visit(context->thenT);
+    Builder.CreateBr(endBlock);
+    thenBlock = Builder.GetInsertBlock(); // code may have changed the block
+
+    currF->getBasicBlockList().push_back(elseBlock); // now emit the else block
+    Builder.SetInsertPoint(elseBlock);
+    Value* elseVal = visit(context->elseT);
+    Builder.CreateBr(endBlock);
+    elseBlock = Builder.GetInsertBlock();
+
+    if (thenVal->getType() != elseVal->getType())
+        return LogErrorV("If expression branches must return the same type");
+
+    currF->getBasicBlockList().push_back(endBlock);
+    Builder.SetInsertPoint(endBlock);
+    PHINode* phi = Builder.CreatePHI(thenVal->getType(), 2);
+    phi->addIncoming(thenVal, thenBlock);
+    phi->addIncoming(elseVal, elseBlock);
+
+    return (Value*)phi;
 }
 
-
-antlrcpp::Any YlangVisitor::visitVarAssign(YlangParser::VarAssignContext *context) {
-    //std::cout << "Visiting varassign" << std::endl;
-    Value* V = visit(context->e);
+antlrcpp::Any YlangVisitor::visitLetInExpr(YlangParser::LetInExprContext *context) {
+    //std::cout << "Visiting letin" << std::endl;
+    Value* V = visit(context->val);
     if (!V)
         return nullptr;
 
-    if (NamedValues.count(context->name->getText()) == 0)
-    {
-        AllocaInst* all = putAllocaInst(Builder.GetInsertBlock()->getParent(), context->name->getText());
-        NamedValues[context->name->getText()] = std::make_pair<>(all, lastValType);
-        Builder.CreateStore(V, all);
-    } else
-    {
-        auto Var = NamedValues[context->name->getText()];
-        Builder.CreateStore(V, Var.first);
-    }
-    return V;
+    if (NamedValues.count(context->name->getText()) != 0)
+        return LogErrorV("Duplicite let-in defintion");
+    
+    AllocaInst* all = putAllocaInst(Builder.GetInsertBlock()->getParent(), context->name->getText());
+    NamedValues[context->name->getText()] = std::make_pair<>(all, lastValType);
+    Builder.CreateStore(V, all);
+    return visit(context->e);
 }
 
 antlrcpp::Any YlangVisitor::visitDefinLine(YlangParser::DefinLineContext *context) {
     //std::cout << "Visiting definline" << std::endl;
     return visit(context->d);
-}
-
-antlrcpp::Any YlangVisitor::visitStmtLine(YlangParser::StmtLineContext *context) {
-    //std::cout << "Visiting stmtline" << std::endl;
-    return visit(context->s);
-}
-
-antlrcpp::Any YlangVisitor::visitExprExpr(YlangParser::ExprExprContext *context)
-{
-    //std::cout << "Visiting exprexpr" << std::endl;
-    return visit(context->e);
 }
 
 antlrcpp::Any YlangVisitor::visitAtomExpr(YlangParser::AtomExprContext *context)
@@ -269,9 +283,9 @@ antlrcpp::Any YlangVisitor::visitCallExpr(YlangParser::CallExprContext *context)
     
     std::vector<Value*> Args;
     std::vector<Type*> ArgTypes;
-    for (unsigned int i = 0; i < context->atom().size(); i++)
+    for (unsigned int i = 0; i < context->expr().size(); i++)
     {
-        Args.push_back(visit(context->atom()[i]));
+        Args.push_back(visit(context->expr()[i]));
         ArgTypes.push_back(lastValType);
         if (!Args.back())
             return LogErrorV("Invalid argument");

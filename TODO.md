@@ -7,8 +7,9 @@ Bugfixes:
 Enhancements:
 - ~~Improve function definition grammar~~
 - ~~Local variables~~
-- ~~Multistatement functions and return statement~~
-- If statement
+- ~~Multistatement functions and return statement (__removed goal due to design changes__)~~
+- ~~If statement~~
+- ~~Make language more functional~~
 - Switch statement
 - While statement
 - Structs
