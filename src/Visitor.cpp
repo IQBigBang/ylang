@@ -199,13 +199,44 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
     return nullptr;
 }
 
-/* antlrcpp::Any YlangVisitor::visitSwitchStmt(YlangParser::SwitchStmtContext *context)
+antlrcpp::Any YlangVisitor::visitSwitchExpr(YlangParser::SwitchExprContext *context)
 {
-    // std::cout << "Visiting switchstmt" << std::endl;
-    return nullptr;
+    std::cout << "Visiting switchexpr" << std::endl;
+    Value* lhs = visit(context->lhs);
+    auto mainBlock = Builder.GetInsertBlock();
+    std::vector<BasicBlock*> cases;
+    std::vector<Value*> results;
+    auto switchEndBlock = BasicBlock::Create(TheContext, "switchend", Builder.GetInsertBlock()->getParent());
+    BasicBlock* currCase = mainBlock;
+    for (int i = 1; i < context->expr().size() - 1; i += 2)
+    { // first expr is the left hand side, last condition is the else expression
+        Builder.SetInsertPoint(currCase); // insert to main block
+        Value* cond = visit(context->expr()[i]); // emit the condition (rhs)
+        if (!lhs->getType()->isDoubleTy() || !cond->getType()->isDoubleTy())
+            return LogErrorV("Invalid types");
+        Value* cmp = Builder.CreateFCmpUEQ(lhs, cond);
+        auto Bcase = BasicBlock::Create(TheContext, "case", Builder.GetInsertBlock()->getParent()); // make 'case' block
+        auto Bncase = BasicBlock::Create(TheContext, "ncase", Builder.GetInsertBlock()->getParent()); // make 'not-case' block
+        Builder.CreateCondBr(cmp, Bcase, Bncase);
+        Builder.SetInsertPoint(Bcase);
+        Value* res = visit(context->expr()[i + 1]); // emit the case (if condition is true)
+        results.push_back(res); // save the result value (for phi node)
+        Builder.CreateBr(switchEndBlock); // and jump to switchend
+        Bcase = Builder.GetInsertBlock(); // in case code generation changed the block
+        cases.push_back(Bcase); // save the block
+        currCase = Bncase;
+    }
+    Builder.SetInsertPoint(currCase);
+    Value* elseVal = visit(context->expr().back());
+    Builder.CreateBr(switchEndBlock);
+    currCase = Builder.GetInsertBlock();
+    Builder.SetInsertPoint(switchEndBlock);
+    PHINode* PN = Builder.CreatePHI(lhs->getType(), cases.size() + 1);
+    for (int i = 0; i < cases.size(); i++)
+        PN->addIncoming(results[i], cases[i]);
+    PN->addIncoming(elseVal, currCase);
+    return (Value*)PN;
 }
-
-*/
 
 antlrcpp::Any YlangVisitor::visitIfExpr(YlangParser::IfExprContext *context)
 {

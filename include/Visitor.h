@@ -64,7 +64,7 @@ public:
 
     antlrcpp::Any visitFuncDef(YlangParser::FuncDefContext *context);
 
-   /* antlrcpp::Any visitSwitchStmt(YlangParser::SwitchStmtContext *context); */
+    antlrcpp::Any visitSwitchExpr(YlangParser::SwitchExprContext *context);
 
     antlrcpp::Any visitIfExpr(YlangParser::IfExprContext *context);
 

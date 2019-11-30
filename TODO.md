@@ -10,13 +10,16 @@ Enhancements:
 - ~~Multistatement functions and return statement (__removed goal due to design changes__)~~
 - ~~If statement~~
 - ~~Make language more functional~~
-- Switch statement
-- While statement
+- ~~Switch statement~~
+- Multi-condition cases (in switch)
+- While statement (possibly removed)
 - Structs
 - Syntax simplification
 - External and unmangled functions
 - Better error reporting
 - Strings
+- Type casting
+- Match statement (simple pattern matching)
 
 New features:
 - JIT compiler

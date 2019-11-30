@@ -14,6 +14,7 @@ expr    : obj=expr ('->') name=ID                   # memberAccess
         | lhs=expr op=('+' | '-') rhs=expr          # infixExpr
         | lhs=expr op=('==' | '!=' | '<' | '>' | '<=' | '>=') rhs=expr #infixExpr
         | 'if' cond=expr '\n'? thenT=expr '\n'? 'else' '\n'? elseT=expr   # ifExpr
+        | 'switch' lhs=expr ('\n'? 'case' expr '\n'? expr)* '\n'? 'else' '\n'? expr # switchExpr
         | 'let' name=ID '=' val=expr 'in' '\n'? e=expr  # letInExpr
         | a=fnatom                                  # atomExpr
         ;
