@@ -9,18 +9,20 @@ Type* YlangVisitor::getTypeFromStr(std::string str)
         return Type::getInt1Ty(TheContext);
     else if (str == "Void")
         return Type::getVoidTy(TheContext);
+    else if (str == "Str")
+        return TheModule->getTypeByName("Str")->getPointerTo();
     else {
         LogErrorV("Invalid type"); 
         return Type::getVoidTy(TheContext);
     }
 }
 
-AllocaInst* YlangVisitor::putAllocaInst(Function *F, std::string Name)
+AllocaInst* YlangVisitor::putAllocaInst(Type* T, std::string Name)
 {
     IRBuilder<> tmpB(
-        &(F->getEntryBlock()), 
-        F->getEntryBlock().begin());
-    return tmpB.CreateAlloca(lastValType, 0, Name);
+        &(Builder.GetInsertBlock()->getParent()->getEntryBlock()), 
+        Builder.GetInsertBlock()->getParent()->getEntryBlock().begin());
+    return tmpB.CreateAlloca(T, 0, Name);
 }
 
 
@@ -34,13 +36,29 @@ YlangVisitor::YlangVisitor() : antlr4::tree::AbstractParseTreeVisitor(), Builder
         PB.buildFunctionSimplificationPipeline(PassBuilder::OptimizationLevel::O2, PassBuilder::ThinLTOPhase::None);
 
     // stdlib integration
+        
+    auto Str = StructType::create(TheContext, {Type::getInt8PtrTy(TheContext), Type::getInt32Ty(TheContext)}, "Str");
+
     // Void print(Num n)
-    Function* F = Function::Create(
-       FunctionType::get(
-           Type::getVoidTy(TheContext),
-           {Type::getDoubleTy(TheContext)},
-            false
-       ), Function::ExternalLinkage, "_Wprint_n", TheModule.get() 
+    addSTLFunction(Type::getVoidTy(TheContext), {Type::getDoubleTy(TheContext)}, "_Wprint_n");
+    // Void print(Str s)
+    addSTLFunction(Type::getVoidTy(TheContext),
+        { Str->getPointerTo() }, "_Wprint_Str");
+    
+    // internal STL
+    // void Strfc(struct Str* s, char* const_char, int len)
+    addSTLFunction(Type::getVoidTy(TheContext),
+        { Str->getPointerTo(), Type::getInt8PtrTy(TheContext), Type::getInt32Ty(TheContext)}, "Strfc");
+    // void Strcc(struct Str* s1, struct Str* s2, struct Str* dest)
+    addSTLFunction(Type::getVoidTy(TheContext),
+        { Str->getPointerTo(), Str->getPointerTo(), Str->getPointerTo()}, "Strcc");
+}
+
+void YlangVisitor::addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name)
+{
+    Function::Create(
+        FunctionType::get(retType, argsType, false),
+        Function::ExternalLinkage, name, TheModule.get()
     );
 }
 
@@ -109,6 +127,11 @@ std::string YlangVisitor::mangleFuncName(std::string fname, std::vector<Type*> a
             mangled += "_n";
         else if (at->isIntegerTy(1))
             mangled += "_b";
+        else if (at->isPointerTy() && at->getContainedType(0)->isStructTy())
+        {
+            mangled += "_";
+            mangled += at->getContainedType(0)->getStructName();
+        }
         else
             LogErrorV("Invalid type");
         
@@ -175,8 +198,8 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
     for (auto &Arg : F->args())
     {
         Arg.setName(context->ID()[i]->getText());
-        lastValType = ArgTypes[(i - 3) / 2]; // putallocainst depends on this variable
-        AllocaInst* all = putAllocaInst(F, Arg.getName());
+        lastValType = ArgTypes[(i - 3) / 2];
+        AllocaInst* all = putAllocaInst(ArgTypes[(i - 3) / 2], Arg.getName());
         Builder.CreateStore(&Arg, all);
         NamedValues[Arg.getName()] = std::make_pair<>(all, lastValType);
         i += 2;
@@ -184,13 +207,18 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
 
     // body
     Value* v = visit(context->body);
-    if (v->getType() != getTypeFromStr(context->rettype->getText()))
-        return LogErrorV("Non-matching type returned");
-    // insert dummy ret
     if (F->getReturnType()->isVoidTy())
+    {
+        if (v && !v->getType()->isVoidTy())
+            return LogErrorV("Non-matching type returned");
         Builder.CreateRetVoid();
-    else
+    } else
+    {
+        if (v->getType() != getTypeFromStr(context->rettype->getText()))
+            return LogErrorV("Non-matching type returned");
         Builder.CreateRet(v);
+    }
+
     if (verifyFunction(*F, &errs()))
     {
         return LogErrorV("Error generating function body");
@@ -201,7 +229,7 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
 
 antlrcpp::Any YlangVisitor::visitSwitchExpr(YlangParser::SwitchExprContext *context)
 {
-    std::cout << "Visiting switchexpr" << std::endl;
+    // std::cout << "Visiting switchexpr" << std::endl;
     Value* lhs = visit(context->lhs);
     auto mainBlock = Builder.GetInsertBlock();
     std::vector<BasicBlock*> cases;
@@ -285,7 +313,7 @@ antlrcpp::Any YlangVisitor::visitLetInExpr(YlangParser::LetInExprContext *contex
     if (NamedValues.count(context->name->getText()) != 0)
         return LogErrorV("Duplicite let-in defintion");
     
-    AllocaInst* all = putAllocaInst(Builder.GetInsertBlock()->getParent(), context->name->getText());
+    AllocaInst* all = putAllocaInst(lastValType, context->name->getText());
     NamedValues[context->name->getText()] = std::make_pair<>(all, lastValType);
     Builder.CreateStore(V, all);
     return visit(context->e);
@@ -403,14 +431,38 @@ antlrcpp::Any YlangVisitor::visitInfixExpr(YlangParser::InfixExprContext *contex
             return (Value*)Builder.CreateICmpNE(left, right);
         
         return LogErrorV("Invalid infix operation for types bool and bool");
+    } else if (leftTy->isPointerTy() && leftTy->getContainedType(0)->isStructTy()
+            && rightTy->isPointerTy() && rightTy->getContainedType(0)->isStructTy())
+    {
+        if (leftTy->getContainedType(0)->getStructName() == "Str"
+            && rightTy->getContainedType(0)->getStructName() == "Str"
+            && op == "+")
+        {
+            Value* newstr = (Value*)putAllocaInst(TheModule->getTypeByName("Str"), "");
+            Builder.CreateCall(TheModule->getFunction("Strcc"), {left, right, newstr});
+            return newstr;
+        }
     }
 
     return LogErrorV("Invalid infix operation operands");
 }
 
 antlrcpp::Any YlangVisitor::visitString(YlangParser::StringContext *context) {
-    //std::cout << "Visiting string" << std::endl;
-    return nullptr;
+    // std::cout << "Visiting string" << std::endl;
+    std::string txt = context->s->getText();
+    txt.pop_back(); // remove quote
+    txt.erase(0, 1); // remove quote
+
+    Value* strobj = putAllocaInst(TheModule->getTypeByName("Str"), ""); // create Str object
+    Value* globstr = Builder.CreateGlobalStringPtr(txt, "conststr"); // create string constant
+
+    Builder.CreateCall(TheModule->getFunction("Strfc"), {strobj, globstr, 
+        ConstantInt::get(Type::getInt32Ty(TheContext), APInt(32, txt.size(), true))
+    });
+
+    lastValType = strobj->getType();
+
+    return (Value*)strobj;
 }
 
 antlrcpp::Any YlangVisitor::visitVariable(YlangParser::VariableContext *context) {

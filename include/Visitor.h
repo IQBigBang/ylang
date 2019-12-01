@@ -55,6 +55,8 @@ public:
 
     void prepareEmit();
 
+    void addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name);
+
    /**
    * Visit parse trees produced by YlangParser.
    */
@@ -114,7 +116,7 @@ public:
     std::string mangleFuncName(std::string fname, std::vector<Type*> args);
 
     // Put alloca instruction at the top of a function and return it
-    AllocaInst* putAllocaInst(Function *F, std::string Name);
+    AllocaInst* putAllocaInst(Type *T, std::string Name);
 
 private:
     LLVMContext TheContext;

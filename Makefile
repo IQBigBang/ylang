@@ -34,7 +34,7 @@ $(OUTFILE): $(PREFIXED_OBJECTS)
 	$(CXX) $(CPPFLAGS) -o $@ $^ $(LIBS)
 
 std: stdlib/Std.c
-	clang -c stdlib/Std.c -o stdlib/Std.o
+	clang-9 -O3 -Weverything -Wno-missing-prototypes -c stdlib/Std.c -o stdlib/Std.o
 
 clean:
 	rm -rf $(OBJDIR)*.*

@@ -3,6 +3,7 @@
 Bugfixes:
 - Minimize build warnings
 - Refactor code for better readability and maintainability
+- Get rid of redundant code (e.g. 'lastValType')
 
 Enhancements:
 - ~~Improve function definition grammar~~
@@ -17,7 +18,7 @@ Enhancements:
 - Syntax simplification
 - External and unmangled functions
 - Better error reporting
-- Strings
+- ~~Strings~~
 - Type casting
 - Match statement (simple pattern matching)
 

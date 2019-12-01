@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
         visitor.Emit(outfile);
     else {
         visitor.Emit("tmp.o");
-        system(("g++ tmp.o stdlib/Std.o -o " + outfile).c_str());
+        system(("clang++-9 tmp.o stdlib/Std.o -o " + outfile).c_str());
         system("rm tmp.o");
         if (outputFormatRun)
         {
