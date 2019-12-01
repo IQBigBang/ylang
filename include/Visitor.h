@@ -124,7 +124,6 @@ private:
     FunctionAnalysisManager TheAnalysisManager;
     IRBuilder<> Builder;
     std::unique_ptr<Module> TheModule;
-    std::map<std::string, std::pair<AllocaInst*, Type*>> NamedValues;
+    std::map<std::string, AllocaInst*> NamedValues;
     TargetMachine* Machine;
-    Type* lastValType;
 };

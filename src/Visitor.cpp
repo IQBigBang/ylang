@@ -198,10 +198,9 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
     for (auto &Arg : F->args())
     {
         Arg.setName(context->ID()[i]->getText());
-        lastValType = ArgTypes[(i - 3) / 2];
         AllocaInst* all = putAllocaInst(ArgTypes[(i - 3) / 2], Arg.getName());
         Builder.CreateStore(&Arg, all);
-        NamedValues[Arg.getName()] = std::make_pair<>(all, lastValType);
+        NamedValues[Arg.getName()] = all;
         i += 2;
     }
 
@@ -270,7 +269,7 @@ antlrcpp::Any YlangVisitor::visitIfExpr(YlangParser::IfExprContext *context)
 {
     // std::cout << "Visiting ifstmt" << std::endl;
     Value* cond = visit(context->cond);
-    if (!lastValType->isIntegerTy(1))
+    if (!cond->getType()->isIntegerTy(1))
         return LogErrorV("If statement requires a boolean");
     
     Function* currF = Builder.GetInsertBlock()->getParent();
@@ -313,8 +312,8 @@ antlrcpp::Any YlangVisitor::visitLetInExpr(YlangParser::LetInExprContext *contex
     if (NamedValues.count(context->name->getText()) != 0)
         return LogErrorV("Duplicite let-in defintion");
     
-    AllocaInst* all = putAllocaInst(lastValType, context->name->getText());
-    NamedValues[context->name->getText()] = std::make_pair<>(all, lastValType);
+    AllocaInst* all = putAllocaInst(V->getType(), context->name->getText());
+    NamedValues[context->name->getText()] = all;
     Builder.CreateStore(V, all);
     return visit(context->e);
 }
@@ -345,7 +344,7 @@ antlrcpp::Any YlangVisitor::visitCallExpr(YlangParser::CallExprContext *context)
     for (unsigned int i = 0; i < context->expr().size(); i++)
     {
         Args.push_back(visit(context->expr()[i]));
-        ArgTypes.push_back(lastValType);
+        ArgTypes.push_back(Args.back()->getType());
         if (!Args.back())
             return LogErrorV("Invalid argument");
     }
@@ -362,14 +361,12 @@ antlrcpp::Any YlangVisitor::visitNumber(YlangParser::NumberContext *context)
 {
     double d = std::stod(context->getText());
     //std::cout << "Visiting number " << d << std::endl;
-    lastValType = Type::getDoubleTy(TheContext);
     return (Value*)ConstantFP::get(TheContext, APFloat(d));
 }
 
 antlrcpp::Any YlangVisitor::visitBool(YlangParser::BoolContext *context)
 {
     //std::cout << "Visiting bool" << std::endl;
-    lastValType = Type::getInt1Ty(TheContext);
     if (context->getText() == "true")
         return (Value*)ConstantInt::get(TheContext, APInt(1, 1, false));
     else if (context->getText() == "false")
@@ -387,9 +384,9 @@ antlrcpp::Any YlangVisitor::visitInfixExpr(YlangParser::InfixExprContext *contex
 {
     //std::cout << "Visiting infixexpr" << std::endl;
     Value* left = visit(context->lhs).as<Value*>();
-    auto leftTy = lastValType;
+    auto leftTy = left->getType();
     Value* right = visit(context->rhs).as<Value*>();
-    auto rightTy = lastValType;
+    auto rightTy = right->getType();
     if (!left || !right)
         return LogErrorV("Invalid infix operand");
     
@@ -397,7 +394,6 @@ antlrcpp::Any YlangVisitor::visitInfixExpr(YlangParser::InfixExprContext *contex
 
     if (leftTy->isDoubleTy() && rightTy->isDoubleTy())
     {
-        lastValType = Type::getDoubleTy(TheContext);
         if (op == "+") 
             return (Value*)Builder.CreateFAdd(left, right);
         else if (op == "-")
@@ -406,9 +402,7 @@ antlrcpp::Any YlangVisitor::visitInfixExpr(YlangParser::InfixExprContext *contex
             return (Value*)Builder.CreateFMul(left, right);
         else if (op == "/")
             return (Value*)Builder.CreateFDiv(left, right);
-        
-        lastValType = Type::getInt1Ty(TheContext);
-        if (op == "<")
+        else if (op == "<")
             return (Value*)Builder.CreateFCmpULT(left, right);
         else if (op == ">")
             return (Value*)Builder.CreateFCmpUGT(left, right);
@@ -424,7 +418,6 @@ antlrcpp::Any YlangVisitor::visitInfixExpr(YlangParser::InfixExprContext *contex
         return LogErrorV("Invalid infix operation for types num and num");
     } else if (leftTy->isIntegerTy(1) && rightTy->isIntegerTy(1))
     {
-        lastValType = Type::getInt1Ty(TheContext);
         if (op == "==")
             return (Value*)Builder.CreateICmpEQ(left, right);
         else if (op == "!=")
@@ -460,18 +453,14 @@ antlrcpp::Any YlangVisitor::visitString(YlangParser::StringContext *context) {
         ConstantInt::get(Type::getInt32Ty(TheContext), APInt(32, txt.size(), true))
     });
 
-    lastValType = strobj->getType();
-
     return (Value*)strobj;
 }
 
 antlrcpp::Any YlangVisitor::visitVariable(YlangParser::VariableContext *context) {
     if (NamedValues.count(context->name->getText()) == 0)
         return LogErrorV("Undefined variable");
-    
-    auto Var = NamedValues[context->name->getText()];
-    lastValType = Var.second;
-    return (Value*)Builder.CreateLoad(Var.first, context->name->getText());
+
+    return (Value*)Builder.CreateLoad(NamedValues[context->name->getText()], context->name->getText());
 }
 
 antlrcpp::Any YlangVisitor::visitParenExpr(YlangParser::ParenExprContext *context) {

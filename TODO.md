@@ -3,7 +3,7 @@
 Bugfixes:
 - Minimize build warnings
 - Refactor code for better readability and maintainability
-- Get rid of redundant code (e.g. 'lastValType')
+- ~~Get rid of redundant code (e.g. 'lastValType')~~
 
 Enhancements:
 - ~~Improve function definition grammar~~
