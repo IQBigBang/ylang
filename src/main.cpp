@@ -1,8 +1,8 @@
-#include "antlr4-runtime.h"
-#include "YlangLexer.h"
-#include "YlangParser.h"
+#include "Lexer.h"
+#include "Parser.h"
 #include "Visitor.h"
 #include "args.hxx"
+#include <fstream>
 
 int main(int argc, char** argv) {
     args::ArgumentParser argParser("YLang compiler");
@@ -38,12 +38,11 @@ int main(int argc, char** argv) {
     std::ifstream stream;
     stream.open(args::get(source));
     
-    antlr4::ANTLRInputStream input(stream);
-    YlangLexer lexer(&input);
-    antlr4::CommonTokenStream tokens(&lexer);
-    YlangParser parser(&tokens);
-    YlangParser::CodeContext* tree = parser.code();
-    YlangVisitor visitor;
+    Lexer lexer(stream);
+    Parser parser(lexer);
+    std::vector<ParseNode*> n = parser.parse();
+    
+    Visitor visitor;
 
     std::string outfile;
     if (outputFormatRun) outfile = "test/bin";
@@ -59,7 +58,8 @@ int main(int argc, char** argv) {
     if (!outputFormatIR) // if output is object or executable, obj file is generated
         visitor.prepareEmit();
     
-    visitor.visitCode(tree);
+    for (auto& pn : n)
+        visitor.visit(pn);
 
     if (outputFormatIR)
         visitor.print(outfile);

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "antlr4-runtime.h"
-#include "YlangParser.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
@@ -36,67 +34,44 @@
 #include <utility>
 #include <vector>
 
-using namespace llvm;
+#include "Tree.h"
 
-enum YType {
-    TNUMBER,
-    TBOOLEAN
-};
+using namespace llvm;
 
 
 /**
  * This class defines an abstract visitor for a parse tree
  * produced by YlangParser.
  */
-class  YlangVisitor : public antlr4::tree::AbstractParseTreeVisitor {
+class  Visitor {
 public:
 
-    YlangVisitor();
+    Visitor();
 
     void prepareEmit();
 
     void addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name);
 
+    // Visit a node of unknown type
+    Value* visit(ParseNode* n);
    /**
-   * Visit parse trees produced by YlangParser.
+   * Visit parse trees produced by Parser.
    */
-    antlrcpp::Any visitCode(YlangParser::CodeContext *context);
 
-    antlrcpp::Any visitExternFuncDef(YlangParser::ExternFuncDefContext *context);
-
-    antlrcpp::Any visitFuncDef(YlangParser::FuncDefContext *context);
-
-    antlrcpp::Any visitSwitchExpr(YlangParser::SwitchExprContext *context);
-
-    antlrcpp::Any visitIfExpr(YlangParser::IfExprContext *context);
-
-    antlrcpp::Any visitLetInExpr(YlangParser::LetInExprContext *context);
-
-    antlrcpp::Any visitDefinLine(YlangParser::DefinLineContext *context);
-
-    antlrcpp::Any visitAtomExpr(YlangParser::AtomExprContext *context);
-
-    antlrcpp::Any visitAtomAtom(YlangParser::AtomAtomContext *context);
-
-    antlrcpp::Any visitCallExpr(YlangParser::CallExprContext *context);
-
-    antlrcpp::Any visitNumber(YlangParser::NumberContext *context);
-
-    antlrcpp::Any visitMemberAccess(YlangParser::MemberAccessContext *context);
-
-    antlrcpp::Any visitInfixExpr(YlangParser::InfixExprContext *context);
-
-    antlrcpp::Any visitString(YlangParser::StringContext *context);
-
-    antlrcpp::Any visitBool(YlangParser::BoolContext *context);
-
-    antlrcpp::Any visitVariable(YlangParser::VariableContext *context);
-
-    antlrcpp::Any visitParenExpr(YlangParser::ParenExprContext *context);
+    Value* visitFuncDef(FuncDefNode* context);
+    Value* visitExternFuncDef(ExternFuncDefNode* context);
+    Value* visitLetIn(LetInNode* context);
+    Value* visitSwitch(SwitchNode* context);
+    Value* visitIf(IfNode* context);
+    Value* visitBinOp(BinOpNode* context);
+    Value* visitMemberAccess(MemberAccessNode* context);
+    Value* visitBool(BoolNode* context);
+    Value* visitNumber(NumberNode* context);
+    Value* visitString(StringNode* context);
+    Value* visitVariable(VariableNode* context);
+    Value* visitCall(CallNode* context);
 
     Type* getTypeFromStr(std::string str);
-
-    Type* getTypeFromEnum(YType yt);
 
     Value* LogErrorV(const char* str)
     {

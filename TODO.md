@@ -4,6 +4,7 @@ Bugfixes:
 - Minimize build warnings
 - Refactor code for better readability and maintainability
 - ~~Get rid of redundant code (e.g. 'lastValType')~~
+- Unary minus
 
 Enhancements:
 - ~~Improve function definition grammar~~
@@ -21,6 +22,7 @@ Enhancements:
 - ~~Strings~~
 - Type casting
 - Match statement (simple pattern matching)
+- Line counting (for better errors)
 
 New features:
 - JIT compiler
@@ -31,5 +33,5 @@ New features:
 - Type inference
 - ~~CLI~~
 - Extend CLI
-- Write custom lexer nad parser
+- ~~Write custom lexer nad parser~~
 - ~~Minimal std integration~~

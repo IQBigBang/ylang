@@ -1,7 +1,37 @@
 #include "Visitor.h"
 #include <memory>
+#include <typeinfo>
 
-Type* YlangVisitor::getTypeFromStr(std::string str)
+Value *Visitor::visit(ParseNode *n)
+{
+    if (dynamic_cast<FuncDefNode*>(n))
+        return visitFuncDef(dynamic_cast<FuncDefNode *>(n));
+    if (dynamic_cast<ExternFuncDefNode*>(n))
+        return visitExternFuncDef(dynamic_cast<ExternFuncDefNode *>(n));
+    if (dynamic_cast<LetInNode*>(n))
+        return visitLetIn(dynamic_cast<LetInNode *>(n));
+    if (dynamic_cast<SwitchNode*>(n))
+        return visitSwitch(dynamic_cast<SwitchNode *>(n));
+    if (dynamic_cast<IfNode*>(n))
+        return visitIf(dynamic_cast<IfNode *>(n));
+    if (dynamic_cast<BinOpNode*>(n))
+        return visitBinOp(dynamic_cast<BinOpNode *>(n));
+    if (dynamic_cast<MemberAccessNode*>(n))
+        return visitMemberAccess(dynamic_cast<MemberAccessNode *>(n));
+    if (dynamic_cast<BoolNode*>(n))
+        return visitBool(dynamic_cast<BoolNode *>(n));
+    if (dynamic_cast<NumberNode*>(n))
+        return visitNumber(dynamic_cast<NumberNode *>(n));
+    if (dynamic_cast<StringNode*>(n))
+        return visitString(dynamic_cast<StringNode *>(n));
+    if (dynamic_cast<VariableNode*>(n))
+        return visitVariable(dynamic_cast<VariableNode *>(n));
+    if (dynamic_cast<CallNode*>(n))
+        return visitCall(dynamic_cast<CallNode *>(n));
+    std::cerr << "Invalid node type: " << typeid(n).name() << std::endl;
+}
+
+Type* Visitor::getTypeFromStr(std::string str)
 {
     if (str == "Num")
         return Type::getDoubleTy(TheContext);
@@ -17,7 +47,7 @@ Type* YlangVisitor::getTypeFromStr(std::string str)
     }
 }
 
-AllocaInst* YlangVisitor::putAllocaInst(Type* T, std::string Name)
+AllocaInst* Visitor::putAllocaInst(Type* T, std::string Name)
 {
     IRBuilder<> tmpB(
         &(Builder.GetInsertBlock()->getParent()->getEntryBlock()), 
@@ -26,7 +56,7 @@ AllocaInst* YlangVisitor::putAllocaInst(Type* T, std::string Name)
 }
 
 
-YlangVisitor::YlangVisitor() : antlr4::tree::AbstractParseTreeVisitor(), Builder(TheContext)
+Visitor::Visitor() : Builder(TheContext)
 {
     TheModule = std::make_unique<Module>("ylang", TheContext);
 
@@ -54,7 +84,7 @@ YlangVisitor::YlangVisitor() : antlr4::tree::AbstractParseTreeVisitor(), Builder
         { Str->getPointerTo(), Str->getPointerTo(), Str->getPointerTo()}, "Strcc");
 }
 
-void YlangVisitor::addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name)
+void Visitor::addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name)
 {
     Function::Create(
         FunctionType::get(retType, argsType, false),
@@ -62,7 +92,7 @@ void YlangVisitor::addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine
     );
 }
 
-void YlangVisitor::prepareEmit()
+void Visitor::prepareEmit()
 {
     InitializeAllTargetInfos();
     InitializeAllTargets();
@@ -91,7 +121,7 @@ void YlangVisitor::prepareEmit()
     TheModule->setTargetTriple(TargetTriple);
 }
 
-void YlangVisitor::Emit(std::string filename)
+void Visitor::Emit(std::string filename)
 {
     std::error_code EC;
     raw_fd_ostream dest(filename, EC, sys::fs::OpenFlags::F_None);
@@ -116,7 +146,7 @@ void YlangVisitor::Emit(std::string filename)
     //std::cout << "Object file succesfully written" << std::endl;
 }
 
-std::string YlangVisitor::mangleFuncName(std::string fname, std::vector<Type*> args)
+std::string Visitor::mangleFuncName(std::string fname, std::vector<Type*> args)
 {
     std::string mangled = "_W" + fname;
     for (Type* at : args)
@@ -139,54 +169,35 @@ std::string YlangVisitor::mangleFuncName(std::string fname, std::vector<Type*> a
     return mangled;
 }
 
-
-antlrcpp::Any YlangVisitor::visitCode(YlangParser::CodeContext *context)
-{
-    //std::cout << "Visiting code" << std::endl;
-    return visitChildren(context);
-}
-
-antlrcpp::Any YlangVisitor::visitExternFuncDef(YlangParser::ExternFuncDefContext *context)
+Value* Visitor::visitExternFuncDef(ExternFuncDefNode *context)
 {
     //std::cout << "Visiting extern function definition" << std::endl;   
     std::vector<Type*> ArgTypes;
-    int i = -1;
-    for (auto id : context->ID())
-    {
-        ++i;
-        if (i == 0) continue; // return type
-        if (i % 2 == 1) continue; // arg name
-        ArgTypes.push_back(getTypeFromStr(id->getText()));
-    }
+    for (auto a : context->args)
+        ArgTypes.push_back(getTypeFromStr(a.first));
 
     FunctionType* FT
-        = FunctionType::get(getTypeFromStr(context->rettype->getText()), ArgTypes, false);
+        = FunctionType::get(getTypeFromStr(context->rettype), ArgTypes, false);
     
     Function* F = 
-        Function::Create(FT, Function::ExternalLinkage, mangleFuncName(context->fname->getText(), ArgTypes), TheModule.get());
+        Function::Create(FT, Function::ExternalLinkage, mangleFuncName(context->fname, ArgTypes), TheModule.get());
 
     return nullptr;
  
 }
 
-antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
+Value* Visitor::visitFuncDef(FuncDefNode *context)
 {
     //std::cout << "Visiting function definition" << std::endl;
     std::vector<Type*> ArgTypes;
-    int i = -1;
-    for (auto id : context->ID())
-    {
-        ++i;
-        if (i == 0) continue; // return type
-        if (i % 2 == 1) continue; // arg name
-        ArgTypes.push_back(getTypeFromStr(id->getText()));
-    }
+    for (auto a : context->args)
+        ArgTypes.push_back(getTypeFromStr(a.first));
 
     FunctionType* FT
-        = FunctionType::get(getTypeFromStr(context->rettype->getText()), ArgTypes, false);
+        = FunctionType::get(getTypeFromStr(context->rettype), ArgTypes, false);
         
     Function* F = 
-        Function::Create(FT, Function::ExternalLinkage, mangleFuncName(context->fname->getText(), ArgTypes), TheModule.get());
+        Function::Create(FT, Function::ExternalLinkage, mangleFuncName(context->fname, ArgTypes), TheModule.get());
 
     // entry block
     BasicBlock* BB = BasicBlock::Create(TheContext, "entry", F);
@@ -194,14 +205,14 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
 
     // args
     NamedValues.clear();
-    i = 3;
+    int i = 0;
     for (auto &Arg : F->args())
     {
-        Arg.setName(context->ID()[i]->getText());
-        AllocaInst* all = putAllocaInst(ArgTypes[(i - 3) / 2], Arg.getName());
+        Arg.setName(context->args[i].second);
+        AllocaInst* all = putAllocaInst(ArgTypes[i], Arg.getName());
         Builder.CreateStore(&Arg, all);
         NamedValues[Arg.getName()] = all;
-        i += 2;
+        ++i;
     }
 
     // body
@@ -213,7 +224,7 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
         Builder.CreateRetVoid();
     } else
     {
-        if (v->getType() != getTypeFromStr(context->rettype->getText()))
+        if (v->getType() != F->getReturnType())
             return LogErrorV("Non-matching type returned");
         Builder.CreateRet(v);
     }
@@ -226,7 +237,7 @@ antlrcpp::Any YlangVisitor::visitFuncDef(YlangParser::FuncDefContext *context)
     return nullptr;
 }
 
-antlrcpp::Any YlangVisitor::visitSwitchExpr(YlangParser::SwitchExprContext *context)
+Value* Visitor::visitSwitch(SwitchNode *context)
 {
     // std::cout << "Visiting switchexpr" << std::endl;
     Value* lhs = visit(context->lhs);
@@ -235,10 +246,10 @@ antlrcpp::Any YlangVisitor::visitSwitchExpr(YlangParser::SwitchExprContext *cont
     std::vector<Value*> results;
     auto switchEndBlock = BasicBlock::Create(TheContext, "switchend", Builder.GetInsertBlock()->getParent());
     BasicBlock* currCase = mainBlock;
-    for (int i = 1; i < context->expr().size() - 1; i += 2)
+    for (auto& c : context->cases)
     { // first expr is the left hand side, last condition is the else expression
         Builder.SetInsertPoint(currCase); // insert to main block
-        Value* cond = visit(context->expr()[i]); // emit the condition (rhs)
+        Value* cond = visit(c.first); // emit the condition (rhs)
         if (!lhs->getType()->isDoubleTy() || !cond->getType()->isDoubleTy())
             return LogErrorV("Invalid types");
         Value* cmp = Builder.CreateFCmpUEQ(lhs, cond);
@@ -246,7 +257,7 @@ antlrcpp::Any YlangVisitor::visitSwitchExpr(YlangParser::SwitchExprContext *cont
         auto Bncase = BasicBlock::Create(TheContext, "ncase", Builder.GetInsertBlock()->getParent()); // make 'not-case' block
         Builder.CreateCondBr(cmp, Bcase, Bncase);
         Builder.SetInsertPoint(Bcase);
-        Value* res = visit(context->expr()[i + 1]); // emit the case (if condition is true)
+        Value* res = visit(c.second); // emit the case (if condition is true)
         results.push_back(res); // save the result value (for phi node)
         Builder.CreateBr(switchEndBlock); // and jump to switchend
         Bcase = Builder.GetInsertBlock(); // in case code generation changed the block
@@ -254,7 +265,7 @@ antlrcpp::Any YlangVisitor::visitSwitchExpr(YlangParser::SwitchExprContext *cont
         currCase = Bncase;
     }
     Builder.SetInsertPoint(currCase);
-    Value* elseVal = visit(context->expr().back());
+    Value* elseVal = visit(context->elsecase);
     Builder.CreateBr(switchEndBlock);
     currCase = Builder.GetInsertBlock();
     Builder.SetInsertPoint(switchEndBlock);
@@ -265,7 +276,7 @@ antlrcpp::Any YlangVisitor::visitSwitchExpr(YlangParser::SwitchExprContext *cont
     return (Value*)PN;
 }
 
-antlrcpp::Any YlangVisitor::visitIfExpr(YlangParser::IfExprContext *context)
+Value* Visitor::visitIf(IfNode *context)
 {
     // std::cout << "Visiting ifstmt" << std::endl;
     Value* cond = visit(context->cond);
@@ -303,94 +314,72 @@ antlrcpp::Any YlangVisitor::visitIfExpr(YlangParser::IfExprContext *context)
     return (Value*)phi;
 }
 
-antlrcpp::Any YlangVisitor::visitLetInExpr(YlangParser::LetInExprContext *context) {
+Value* Visitor::visitLetIn(LetInNode *context) {
     //std::cout << "Visiting letin" << std::endl;
     Value* V = visit(context->val);
     if (!V)
         return nullptr;
 
-    if (NamedValues.count(context->name->getText()) != 0)
+    if (NamedValues.count(context->name) != 0)
         return LogErrorV("Duplicite let-in defintion");
     
-    AllocaInst* all = putAllocaInst(V->getType(), context->name->getText());
-    NamedValues[context->name->getText()] = all;
+    AllocaInst* all = putAllocaInst(V->getType(), context->name);
+    NamedValues[context->name] = all;
     Builder.CreateStore(V, all);
-    return visit(context->e);
+    return visit(context->in_expr);
 }
 
-antlrcpp::Any YlangVisitor::visitDefinLine(YlangParser::DefinLineContext *context) {
-    //std::cout << "Visiting definline" << std::endl;
-    return visit(context->d);
-}
-
-antlrcpp::Any YlangVisitor::visitAtomExpr(YlangParser::AtomExprContext *context)
-{
-    //std::cout << "Visiting atomexpr" << std::endl;
-    return visit(context->a);
-}
-
-antlrcpp::Any YlangVisitor::visitAtomAtom(YlangParser::AtomAtomContext *context)
-{
-    //std::cout << "Visiting atomatom" << std::endl;
-    return visit(context->a);
-}
-
-antlrcpp::Any YlangVisitor::visitCallExpr(YlangParser::CallExprContext *context)
+Value* Visitor::visitCall(CallNode *context)
 {
     //std::cout << "Visiting callexpr" << std::endl;
     
     std::vector<Value*> Args;
     std::vector<Type*> ArgTypes;
-    for (unsigned int i = 0; i < context->expr().size(); i++)
+    for (auto& a : context->args)
     {
-        Args.push_back(visit(context->expr()[i]));
+        Args.push_back(visit(a));
         ArgTypes.push_back(Args.back()->getType());
         if (!Args.back())
             return LogErrorV("Invalid argument");
     }
 
     // We don't need to check types, the mangling algorithm does that
-    Function* F = TheModule->getFunction(mangleFuncName(context->fname->getText(), ArgTypes));
+    Function* F = TheModule->getFunction(mangleFuncName(context->fname, ArgTypes));
     if (!F)
         return LogErrorV("Undefined function. Check function name spelling and correct argument types");
 
     return (Value*)Builder.CreateCall(F, Args);
 }
 
-antlrcpp::Any YlangVisitor::visitNumber(YlangParser::NumberContext *context)
+Value* Visitor::visitNumber(NumberNode *context)
 {
-    double d = std::stod(context->getText());
     //std::cout << "Visiting number " << d << std::endl;
-    return (Value*)ConstantFP::get(TheContext, APFloat(d));
+    return (Value*)ConstantFP::get(TheContext, APFloat(context->val));
 }
 
-antlrcpp::Any YlangVisitor::visitBool(YlangParser::BoolContext *context)
+Value* Visitor::visitBool(BoolNode *context)
 {
     //std::cout << "Visiting bool" << std::endl;
-    if (context->getText() == "true")
-        return (Value*)ConstantInt::get(TheContext, APInt(1, 1, false));
-    else if (context->getText() == "false")
-        return (Value*)ConstantInt::get(TheContext, APInt(1, 1, false));
-    else return LogErrorV("Invalid boolean value");
+    return (Value*)ConstantInt::get(TheContext, APInt(1, context->val, false));
     
 }
 
-antlrcpp::Any YlangVisitor::visitMemberAccess(YlangParser::MemberAccessContext *context) {
+Value* Visitor::visitMemberAccess(MemberAccessNode *context) {
     //std::cout << "Visiting memberaccess" << std::endl;
     return nullptr;
 }
 
-antlrcpp::Any YlangVisitor::visitInfixExpr(YlangParser::InfixExprContext *context)
+Value* Visitor::visitBinOp(BinOpNode *context)
 {
     //std::cout << "Visiting infixexpr" << std::endl;
-    Value* left = visit(context->lhs).as<Value*>();
+    Value* left = visit(context->lhs);
     auto leftTy = left->getType();
-    Value* right = visit(context->rhs).as<Value*>();
+    Value* right = visit(context->rhs);
     auto rightTy = right->getType();
     if (!left || !right)
         return LogErrorV("Invalid infix operand");
     
-    std::string op = context->op->getText();
+    std::string op = context->op;
 
     if (leftTy->isDoubleTy() && rightTy->isDoubleTy())
     {
@@ -440,30 +429,22 @@ antlrcpp::Any YlangVisitor::visitInfixExpr(YlangParser::InfixExprContext *contex
     return LogErrorV("Invalid infix operation operands");
 }
 
-antlrcpp::Any YlangVisitor::visitString(YlangParser::StringContext *context) {
+Value* Visitor::visitString(StringNode *context) {
     // std::cout << "Visiting string" << std::endl;
-    std::string txt = context->s->getText();
-    txt.pop_back(); // remove quote
-    txt.erase(0, 1); // remove quote
 
     Value* strobj = putAllocaInst(TheModule->getTypeByName("Str"), ""); // create Str object
-    Value* globstr = Builder.CreateGlobalStringPtr(txt, "conststr"); // create string constant
+    Value* globstr = Builder.CreateGlobalStringPtr(context->val, "conststr"); // create string constant
 
     Builder.CreateCall(TheModule->getFunction("Strfc"), {strobj, globstr, 
-        ConstantInt::get(Type::getInt32Ty(TheContext), APInt(32, txt.size(), true))
+        ConstantInt::get(Type::getInt32Ty(TheContext), APInt(32, context->val.size(), true))
     });
 
     return (Value*)strobj;
 }
 
-antlrcpp::Any YlangVisitor::visitVariable(YlangParser::VariableContext *context) {
-    if (NamedValues.count(context->name->getText()) == 0)
+Value* Visitor::visitVariable(VariableNode *context) {
+    if (NamedValues.count(context->var) == 0)
         return LogErrorV("Undefined variable");
 
-    return (Value*)Builder.CreateLoad(NamedValues[context->name->getText()], context->name->getText());
-}
-
-antlrcpp::Any YlangVisitor::visitParenExpr(YlangParser::ParenExprContext *context) {
-    //std::cout << "Visiting parenexpr" << std::endl;
-    return visit(context->e);
+    return (Value*)Builder.CreateLoad(NamedValues[context->var], context->var);
 }
