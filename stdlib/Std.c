@@ -4,7 +4,7 @@
 
 // definitions
 
-extern void _WMain(void);
+extern void _Wmain(void);
 struct Str {
     char* buf; 
     int len;
@@ -25,7 +25,7 @@ void _Wprint_Str(struct Str* s)
 // -- Internal STL --
 
 // initialize a Str object from constant char array
-void Strfc(struct Str* s, char* const_char, int len)
+void strfc(struct Str* s, char* const_char, int len)
 {
     s->buf = (char*)malloc(len + 1);
     memcpy(s->buf, const_char, len);
@@ -34,7 +34,7 @@ void Strfc(struct Str* s, char* const_char, int len)
 }
 
 // concat two Str objects
-void Strcc(struct Str* s1, struct Str* s2, struct Str* dest)
+void strcc(struct Str* s1, struct Str* s2, struct Str* dest)
 {
     dest->buf = (char*)malloc(s1->len + s2->len + 1); // allocate
     memcpy(dest->buf, s1->buf, s1->len); // copy s1
@@ -46,6 +46,6 @@ void Strcc(struct Str* s1, struct Str* s2, struct Str* dest)
 }
 
 int main() {
-    _WMain();
+    _Wmain();
     return 0;
 }

@@ -53,6 +53,10 @@ Lexeme *Lexer::next()
         return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "("};
     if (c == ')')
         return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = ")"};
+    if (c == '{')
+        return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "{"};
+    if (c == '}')
+        return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "}"};
     if (c == '=')
     {
         inp.get(c);
@@ -129,6 +133,8 @@ Lexeme *Lexer::next()
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "def"};
         if (id == "external")
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "external"};
+        if (id == "type")
+            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "type"};
         if (id == "if")
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "if"};
         if (id == "else")

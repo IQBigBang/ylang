@@ -1,9 +1,12 @@
 #include "Visitor.h"
 #include <memory>
 #include <typeinfo>
+#include <cctype>
 
 Value *Visitor::visit(ParseNode *n)
 {
+    if (dynamic_cast<TypeDefNode*>(n))
+        return visitTypeDef(dynamic_cast<TypeDefNode*>(n));
     if (dynamic_cast<FuncDefNode*>(n))
         return visitFuncDef(dynamic_cast<FuncDefNode *>(n));
     if (dynamic_cast<ExternFuncDefNode*>(n))
@@ -39,10 +42,10 @@ Type* Visitor::getTypeFromStr(std::string str)
         return Type::getInt1Ty(TheContext);
     else if (str == "Void")
         return Type::getVoidTy(TheContext);
-    else if (str == "Str")
-        return TheModule->getTypeByName("Str")->getPointerTo();
+    else if (TheModule->getTypeByName(str))
+        return TheModule->getTypeByName(str)->getPointerTo();
     else {
-        LogErrorV("Invalid type"); 
+        LogErrorV(("Invalid type " + str).c_str()); 
         return Type::getVoidTy(TheContext);
     }
 }
@@ -55,6 +58,10 @@ AllocaInst* Visitor::putAllocaInst(Type* T, std::string Name)
     return tmpB.CreateAlloca(T, 0, Name);
 }
 
+Constant* Visitor::getInt32Const(int val)
+{
+    return ConstantInt::get(Type::getInt32Ty(TheContext), APInt(32, val, false));
+}
 
 Visitor::Visitor() : Builder(TheContext)
 {
@@ -78,10 +85,12 @@ Visitor::Visitor() : Builder(TheContext)
     // internal STL
     // void Strfc(struct Str* s, char* const_char, int len)
     addSTLFunction(Type::getVoidTy(TheContext),
-        { Str->getPointerTo(), Type::getInt8PtrTy(TheContext), Type::getInt32Ty(TheContext)}, "Strfc");
-    // void Strcc(struct Str* s1, struct Str* s2, struct Str* dest)
+        { Str->getPointerTo(), Type::getInt8PtrTy(TheContext), Type::getInt32Ty(TheContext)}, "strfc");
+    // void strcc(struct Str* s1, struct Str* s2, struct Str* dest)
     addSTLFunction(Type::getVoidTy(TheContext),
-        { Str->getPointerTo(), Str->getPointerTo(), Str->getPointerTo()}, "Strcc");
+        { Str->getPointerTo(), Str->getPointerTo(), Str->getPointerTo()}, "strcc");
+    addSTLFunction(Type::getInt8PtrTy(TheContext),
+        { Type::getInt64Ty(TheContext) }, "malloc");
 }
 
 void Visitor::addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name)
@@ -152,7 +161,7 @@ std::string Visitor::mangleFuncName(std::string fname, std::vector<Type*> args)
     for (Type* at : args)
     {
         if (!at)
-            LogErrorV("Invalid type");
+            LogErrorV(("Invalid type " + fname).c_str());
         if (at->isDoubleTy())
             mangled += "_n";
         else if (at->isIntegerTy(1))
@@ -163,15 +172,14 @@ std::string Visitor::mangleFuncName(std::string fname, std::vector<Type*> args)
             mangled += at->getContainedType(0)->getStructName();
         }
         else
-            LogErrorV("Invalid type");
+            LogErrorV(("Invalid type " + fname).c_str());
         
     }
     return mangled;
 }
 
 Value* Visitor::visitExternFuncDef(ExternFuncDefNode *context)
-{
-    //std::cout << "Visiting extern function definition" << std::endl;   
+{  
     std::vector<Type*> ArgTypes;
     for (auto a : context->args)
         ArgTypes.push_back(getTypeFromStr(a.first));
@@ -188,7 +196,8 @@ Value* Visitor::visitExternFuncDef(ExternFuncDefNode *context)
 
 Value* Visitor::visitFuncDef(FuncDefNode *context)
 {
-    //std::cout << "Visiting function definition" << std::endl;
+    if (std::isupper(context->fname[0]))
+        return LogErrorV("Function names must start lowercase.");
     std::vector<Type*> ArgTypes;
     for (auto a : context->args)
         ArgTypes.push_back(getTypeFromStr(a.first));
@@ -237,9 +246,73 @@ Value* Visitor::visitFuncDef(FuncDefNode *context)
     return nullptr;
 }
 
+Value* Visitor::visitTypeDef(TypeDefNode* context)
+{
+    if (std::islower(context->name[0]))
+        return LogErrorV("Type names must start uppercase.");
+    if (context->name == "Num" || context->name == "Bool" || context->name == "Void" ||
+        TheModule->getTypeByName(context->name))
+        return LogErrorV("Duplicite structure name");
+    std::vector<Type*> memberTypes;
+    std::vector<std::string> memberNames;
+    for (auto M : context->members)
+    {
+        memberNames.push_back(M.second);
+        memberTypes.push_back(getTypeFromStr(M.first));
+    }
+    auto newS = StructType::create(TheContext, memberTypes, context->name, false);
+    StructMembers[context->name] = memberNames;
+
+    memberTypes.insert(memberTypes.begin(), newS->getPointerTo()); // for the constructor
+
+    auto constructor = Function::Create(
+        FunctionType::get(
+            Type::getVoidTy(TheContext),
+            memberTypes, 
+            false
+        ), Function::ExternalLinkage, mangleFuncName(context->name, memberTypes), TheModule.get()
+    );
+    BasicBlock* BB = BasicBlock::Create(TheContext, "entry", constructor);
+    Builder.SetInsertPoint(BB);
+
+    int i = -1;
+    for (auto& a : constructor->args())
+    {
+        ++i;
+        if (i == 0) continue;
+        Value* member = (Value*)GetElementPtrInst::CreateInBounds(constructor->args().begin(), 
+            {getInt32Const(0), getInt32Const(i - 1)}, 
+            memberNames[i - 1], BB        
+        );
+        Builder.CreateStore(&a, member);
+    }
+    Builder.CreateRetVoid();
+
+    return nullptr;
+}
+
+/*antlrcpp::Any YlangVisitor::visitTypeDef(YlangParser::TypeDefContext *context)
+{
+    std::string tname = context->ntypename->getText();
+    if (tname == "Num" || tname == "Bool" || tname == "Void" || tname == "Str" || TheModule->getTypeByName(tname))
+        return LogErrorV("Duplicite structure name");
+    
+    unsigned int Id = 0;
+    std::vector<std::string> memberNames;
+    std::vector<Type*> memberTypes;
+    for (auto I : context->ID())
+    {
+        if (Id == 0) continue; // type name
+        if (Id % 2 == 1) memberTypes.push_back(getTypeFromStr(I->getText()));
+        if (Id % 2 == 0) memberNames.push_back(I->getText());
+    }
+    StructType::create(TheContext, memberTypes, tname, false)->print(errs(), true);
+    StructMembers[tname] = memberNames;
+    return nullptr;
+}*/
+
 Value* Visitor::visitSwitch(SwitchNode *context)
 {
-    // std::cout << "Visiting switchexpr" << std::endl;
     Value* lhs = visit(context->lhs);
     auto mainBlock = Builder.GetInsertBlock();
     std::vector<BasicBlock*> cases;
@@ -278,7 +351,6 @@ Value* Visitor::visitSwitch(SwitchNode *context)
 
 Value* Visitor::visitIf(IfNode *context)
 {
-    // std::cout << "Visiting ifstmt" << std::endl;
     Value* cond = visit(context->cond);
     if (!cond->getType()->isIntegerTy(1))
         return LogErrorV("If statement requires a boolean");
@@ -315,7 +387,6 @@ Value* Visitor::visitIf(IfNode *context)
 }
 
 Value* Visitor::visitLetIn(LetInNode *context) {
-    //std::cout << "Visiting letin" << std::endl;
     Value* V = visit(context->val);
     if (!V)
         return nullptr;
@@ -329,13 +400,20 @@ Value* Visitor::visitLetIn(LetInNode *context) {
     return visit(context->in_expr);
 }
 
-Value* Visitor::visitCall(CallNode *context)
+Value *Visitor::visitCall(CallNode *context)
 {
-    //std::cout << "Visiting callexpr" << std::endl;
-    
-    std::vector<Value*> Args;
-    std::vector<Type*> ArgTypes;
-    for (auto& a : context->args)
+    std::vector<Value *> Args;
+    std::vector<Type *> ArgTypes;
+
+    Value* allocatedObj;
+    if (std::isupper(context->fname[0])) // a constructor call
+    {
+        allocatedObj = Builder.CreateAlloca(TheModule->getTypeByName(context->fname));
+        Args.push_back(allocatedObj);
+        ArgTypes.push_back(allocatedObj->getType());
+    }
+
+    for (auto &a : context->args)
     {
         Args.push_back(visit(a));
         ArgTypes.push_back(Args.back()->getType());
@@ -344,34 +422,47 @@ Value* Visitor::visitCall(CallNode *context)
     }
 
     // We don't need to check types, the mangling algorithm does that
-    Function* F = TheModule->getFunction(mangleFuncName(context->fname, ArgTypes));
+    Function *F = TheModule->getFunction(mangleFuncName(context->fname, ArgTypes));
     if (!F)
-        return LogErrorV("Undefined function. Check function name spelling and correct argument types");
+        return LogErrorV("Undefined function or constructor. Check name spelling and correct argument types");
 
-    return (Value*)Builder.CreateCall(F, Args);
+    if (std::isupper(context->fname[0])) // if constructor, return the object not void
+    {
+        Builder.CreateCall(F, Args);
+        return allocatedObj;
+    }
+    return (Value *)Builder.CreateCall(F, Args);
 }
 
 Value* Visitor::visitNumber(NumberNode *context)
 {
-    //std::cout << "Visiting number " << d << std::endl;
     return (Value*)ConstantFP::get(TheContext, APFloat(context->val));
 }
 
 Value* Visitor::visitBool(BoolNode *context)
 {
-    //std::cout << "Visiting bool" << std::endl;
     return (Value*)ConstantInt::get(TheContext, APInt(1, context->val, false));
     
 }
 
 Value* Visitor::visitMemberAccess(MemberAccessNode *context) {
-    //std::cout << "Visiting memberaccess" << std::endl;
-    return nullptr;
+    Value* obj = visit(context->obj);
+    if (!obj->getType()->isPointerTy() || !obj->getType()->getContainedType(0)->isStructTy()
+                                || obj->getType()->getContainedType(0)->getStructName() == "Str")
+        return LogErrorV("Primitive types don't have members!");
+    auto& members = StructMembers[obj->getType()->getContainedType(0)->getStructName()];
+    auto it = std::find(members.begin(), members.end(), context->member);
+    if (it == members.end())
+        return LogErrorV("Undefined member");
+    int index = it - members.begin();
+    auto member_ptr = GetElementPtrInst::CreateInBounds(obj, 
+        {getInt32Const(0), getInt32Const(index)}, 
+    "", Builder.GetInsertBlock());
+    return Builder.CreateLoad(member_ptr, context->member);
 }
 
 Value* Visitor::visitBinOp(BinOpNode *context)
 {
-    //std::cout << "Visiting infixexpr" << std::endl;
     Value* left = visit(context->lhs);
     auto leftTy = left->getType();
     Value* right = visit(context->rhs);
@@ -421,7 +512,7 @@ Value* Visitor::visitBinOp(BinOpNode *context)
             && op == "+")
         {
             Value* newstr = (Value*)putAllocaInst(TheModule->getTypeByName("Str"), "");
-            Builder.CreateCall(TheModule->getFunction("Strcc"), {left, right, newstr});
+            Builder.CreateCall(TheModule->getFunction("strcc"), {left, right, newstr});
             return newstr;
         }
     }
@@ -430,13 +521,11 @@ Value* Visitor::visitBinOp(BinOpNode *context)
 }
 
 Value* Visitor::visitString(StringNode *context) {
-    // std::cout << "Visiting string" << std::endl;
-
     Value* strobj = putAllocaInst(TheModule->getTypeByName("Str"), ""); // create Str object
     Value* globstr = Builder.CreateGlobalStringPtr(context->val, "conststr"); // create string constant
 
-    Builder.CreateCall(TheModule->getFunction("Strfc"), {strobj, globstr, 
-        ConstantInt::get(Type::getInt32Ty(TheContext), APInt(32, context->val.size(), true))
+    Builder.CreateCall(TheModule->getFunction("strfc"), {strobj, globstr, 
+        getInt32Const(context->val.size())
     });
 
     return (Value*)strobj;

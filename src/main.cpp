@@ -41,6 +41,9 @@ int main(int argc, char** argv) {
     Lexer lexer(stream);
     Parser parser(lexer);
     std::vector<ParseNode*> n = parser.parse();
+
+    /*for (auto& pn : n)
+        pn->print();*/
     
     Visitor visitor;
 

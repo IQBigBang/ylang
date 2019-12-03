@@ -15,7 +15,7 @@ Enhancements:
 - ~~Switch statement~~
 - Multi-condition cases (in switch)
 - While statement (possibly removed)
-- Structs
+- ~~Structs~~
 - Syntax simplification
 - External and unmangled functions
 - Better error reporting
@@ -23,12 +23,13 @@ Enhancements:
 - Type casting
 - Match statement (simple pattern matching)
 - Line counting (for better errors)
+- Do expression (multiple statements wrapper)
 
 New features:
 - JIT compiler
 - ~~Optimizer~~
 - Sum types
-- Pointers
+- Pointers (possibly?)
 - Full std library
 - Type inference
 - ~~CLI~~

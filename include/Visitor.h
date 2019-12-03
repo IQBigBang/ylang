@@ -57,7 +57,7 @@ public:
    /**
    * Visit parse trees produced by Parser.
    */
-
+    Value* visitTypeDef(TypeDefNode* context);
     Value* visitFuncDef(FuncDefNode* context);
     Value* visitExternFuncDef(ExternFuncDefNode* context);
     Value* visitLetIn(LetInNode* context);
@@ -93,6 +93,8 @@ public:
     // Put alloca instruction at the top of a function and return it
     AllocaInst* putAllocaInst(Type *T, std::string Name);
 
+    Constant* getInt32Const(int val);
+
 private:
     LLVMContext TheContext;
     FunctionPassManager ThePassManager;
@@ -100,5 +102,6 @@ private:
     IRBuilder<> Builder;
     std::unique_ptr<Module> TheModule;
     std::map<std::string, AllocaInst*> NamedValues;
+    std::map<std::string, std::vector<std::string>> StructMembers;
     TargetMachine* Machine;
 };

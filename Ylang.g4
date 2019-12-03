@@ -6,6 +6,7 @@ line    : d=defin                                    # definLine
 defin   : 
         'def' 'external' rettype=ID fname=ID '(' (type=ID arg=ID)* ')' '\n'*    # externFuncDef
         | 'def' rettype=ID fname=ID '(' (type=ID arg=ID)* ')' '\n'? body=expr '\n'*  # funcDef
+        | 'type' ntypename=ID '{' '\n'? (type=ID name=ID '\n')+ '}' '\n'* # typeDef 
         ;
 
 expr    : obj=expr ('->') name=ID                   # memberAccess

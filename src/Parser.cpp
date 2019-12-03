@@ -5,37 +5,53 @@ std::vector<ParseNode*> Parser::parse()
     std::vector<ParseNode*> code;
     while (!peek(Lexeme::LEX_EOF))
     {
-        // 'defin' rule
-        expectKW("def");
-
-        bool is_external = false;
-        if (peekKW("external"))
+        if (peekKW("type"))
         {
-            is_external = true;
-            eat();
-        }
-        
-        std::string rettype = expect(Lexeme::LEX_ID);
-        std::string fname = expect(Lexeme::LEX_ID);
+            eat(); // type
+            std::string type_name = expect(Lexeme::LEX_ID);
 
-        expectKW("(");
-        // vector of <argtype, argname>
-        std::vector<std::pair<std::string, std::string>> args;
-        while (!peekKW(")"))
-        {
-            args.push_back(std::pair<std::string, std::string>(expect(Lexeme::LEX_ID), expect(Lexeme::LEX_ID)));
-        }
-        eat(); // ")"
+            std::vector<std::pair<std::string, std::string>> members;
+            expectKW("{");
+            while (!peekKW("}"))
+                members.push_back(std::pair<std::string, std::string>(expect(Lexeme::LEX_ID), expect(Lexeme::LEX_ID)));
+            eat(); // }
 
-        if (!is_external)
+            code.push_back(new TypeDefNode(type_name, members));
+
+        } else if (peekKW("def"))
         {
+            eat(); // def
+
+            bool is_external = false;
+            if (peekKW("external"))
+            {
+                is_external = true;
+                eat();
+            }
             
-            ParseNode* body = parse_expr();     
-            code.push_back(new FuncDefNode(rettype, fname, args, body));
-        } else {
-            
-            code.push_back(new ExternFuncDefNode(rettype, fname, args));
-        }
+            std::string rettype = expect(Lexeme::LEX_ID);
+            std::string fname = expect(Lexeme::LEX_ID);
+
+            expectKW("(");
+            // vector of <argtype, argname>
+            std::vector<std::pair<std::string, std::string>> args;
+            while (!peekKW(")"))
+            {
+                args.push_back(std::pair<std::string, std::string>(expect(Lexeme::LEX_ID), expect(Lexeme::LEX_ID)));
+            }
+            eat(); // ")"
+
+            if (!is_external)
+            {
+                
+                ParseNode* body = parse_expr();     
+                code.push_back(new FuncDefNode(rettype, fname, args, body));
+            } else {
+                
+                code.push_back(new ExternFuncDefNode(rettype, fname, args));
+            }
+        } else
+            std::cerr << "Unexpected top-level token. Expected function or type definition" << std::endl;
     }
     return code;
 }

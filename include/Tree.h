@@ -11,6 +11,21 @@ struct ParseNode
     virtual void print() = 0;
 };
 
+struct TypeDefNode : ParseNode
+{
+    std::string name;
+    std::vector<std::pair<std::string, std::string>> members;
+    TypeDefNode(std::string name, std::vector<std::pair<std::string, std::string>> members)
+        : name(name), members(members) {}
+    virtual void print()
+    {
+        std::cerr << "Typedef{name=" << name << ", members=[";
+        for (auto p : members)
+            std::cerr << "(" << p.second << ", type=" << p.first << ")";
+        std::cerr << "]}";
+    }
+};
+
 struct FuncDefNode : ParseNode
 {
     std::string rettype;
