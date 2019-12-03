@@ -11,6 +11,8 @@ Value *Visitor::visit(ParseNode *n)
         return visitFuncDef(dynamic_cast<FuncDefNode *>(n));
     if (dynamic_cast<ExternFuncDefNode*>(n))
         return visitExternFuncDef(dynamic_cast<ExternFuncDefNode *>(n));
+    if (dynamic_cast<DoNode*>(n))
+        return visitDo(dynamic_cast<DoNode*>(n));
     if (dynamic_cast<LetInNode*>(n))
         return visitLetIn(dynamic_cast<LetInNode *>(n));
     if (dynamic_cast<SwitchNode*>(n))
@@ -291,25 +293,15 @@ Value* Visitor::visitTypeDef(TypeDefNode* context)
     return nullptr;
 }
 
-/*antlrcpp::Any YlangVisitor::visitTypeDef(YlangParser::TypeDefContext *context)
+Value* Visitor::visitDo(DoNode* context)
 {
-    std::string tname = context->ntypename->getText();
-    if (tname == "Num" || tname == "Bool" || tname == "Void" || tname == "Str" || TheModule->getTypeByName(tname))
-        return LogErrorV("Duplicite structure name");
-    
-    unsigned int Id = 0;
-    std::vector<std::string> memberNames;
-    std::vector<Type*> memberTypes;
-    for (auto I : context->ID())
-    {
-        if (Id == 0) continue; // type name
-        if (Id % 2 == 1) memberTypes.push_back(getTypeFromStr(I->getText()));
-        if (Id % 2 == 0) memberNames.push_back(I->getText());
-    }
-    StructType::create(TheContext, memberTypes, tname, false)->print(errs(), true);
-    StructMembers[tname] = memberNames;
-    return nullptr;
-}*/
+    if (context->exprs.size() == 0)
+        return LogErrorV("A do statement must contain at least one expression");
+    Value* V;
+    for (auto e : context->exprs)
+        V = visit(e);
+    return V;
+}
 
 Value* Visitor::visitSwitch(SwitchNode *context)
 {

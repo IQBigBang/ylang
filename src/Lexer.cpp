@@ -131,6 +131,8 @@ Lexeme *Lexer::next()
         inp.unget();
         if (id == "def")
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "def"};
+        if (id == "do")
+            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "do"};
         if (id == "external")
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "external"};
         if (id == "type")

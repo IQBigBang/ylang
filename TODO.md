@@ -2,9 +2,11 @@
 
 Bugfixes:
 - Minimize build warnings
-- Refactor code for better readability and maintainability
+- Refactor code for better readability and maintainability (?)
 - ~~Get rid of redundant code (e.g. 'lastValType')~~
 - Unary minus
+- Numbers not correctly passed into IR
+- Comments not working
 
 Enhancements:
 - ~~Improve function definition grammar~~
@@ -23,7 +25,8 @@ Enhancements:
 - Type casting
 - Match statement (simple pattern matching)
 - Line counting (for better errors)
-- Do expression (multiple statements wrapper)
+- ~~Do expression (multiple statements wrapper)~~
+- Add tests!
 
 New features:
 - JIT compiler

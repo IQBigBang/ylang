@@ -60,6 +60,7 @@ public:
     Value* visitTypeDef(TypeDefNode* context);
     Value* visitFuncDef(FuncDefNode* context);
     Value* visitExternFuncDef(ExternFuncDefNode* context);
+    Value* visitDo(DoNode* context);
     Value* visitLetIn(LetInNode* context);
     Value* visitSwitch(SwitchNode* context);
     Value* visitIf(IfNode* context);

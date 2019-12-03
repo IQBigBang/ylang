@@ -58,8 +58,18 @@ std::vector<ParseNode*> Parser::parse()
 
 ParseNode* Parser::parse_expr()
 {
-    if (!peekKW("let"))
+    if (!peekKW("let") && !peekKW("do"))
         return parse_letinexpr();
+    if (peekKW("do"))
+    {
+        eat(); // do
+        std::vector<ParseNode*> body;
+        expectKW("{");
+        while (!peekKW("}"))
+            body.push_back(parse_expr());
+        expectKW("}");
+        return new DoNode(body);
+    }
     expectKW("let");
     std::string name = expect(Lexeme::LEX_ID);
     expectKW("=");

@@ -24,6 +24,7 @@ public:
     /*
     expr := letInExpr
           | 'let' name=ID '=' val=letInExpr 'in' expr
+          | 'do' '{' {expr} '}'
     */
     ParseNode* parse_expr();
 
