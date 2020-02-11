@@ -114,8 +114,7 @@ Lexeme *Lexer::next()
                     break;
                 }
                 num.push_back('.');
-            }
-            num.push_back(c);
+            } else num.push_back(c);
         }
         inp.unget();
         return new Lexeme{.LType = Lexeme::LEX_NUMBER, .LVal = num};

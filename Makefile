@@ -19,10 +19,10 @@ PREFIXED_OBJECTS = $(addprefix $(OBJDIR),$(OBJECTS))
 all: $(OUTFILE)
 
 $(OBJDIR)%.o: $(SRCDIR)%.cpp
-	$(CXX) -c $(CPPFLAGS) -Iinclude/ -o $@ $<
+	$(CXX) -c $(CPPFLAGS) -Iinclude/ -Wno-unused-command-line-argument -o $@ $<
 
 $(OUTFILE): $(PREFIXED_OBJECTS)
-	$(CXX) $(CPPFLAGS) -o $@ $^ $(LIBS)
+	$(CXX) $(CPPFLAGS) $(LIBS) $^ -o $@
 
 std: stdlib/Std.c
 	clang-9 -O3 -Weverything -Wno-missing-prototypes -c stdlib/Std.c -o stdlib/Std.o

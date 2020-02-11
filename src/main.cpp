@@ -11,6 +11,7 @@ int main(int argc, char** argv) {
     args::Flag outputFormatIR(outputFormatsGroup, "output IR", "Emit LLVM Immediate Representation", {"ir"});
     args::Flag outputFormatObj(outputFormatsGroup, "output object", "Emit native object file", {"obj"});
     args::Flag outputFormatRun(outputFormatsGroup, "run immediately", "Run code immediately after compilation and linking", {'r'});
+    args::Flag noOptimizations(argParser, "no optimizations", "Disable code optimizations", {"O0"});
     args::ValueFlag<std::string> output(argParser, "output", "Output file path", {'o'});
 
     try
@@ -57,12 +58,12 @@ int main(int argc, char** argv) {
             outfile = "test/bin.o";
         else outfile = "test/bin";
     }
-
-    if (!outputFormatIR) // if output is object or executable, obj file is generated
-        visitor.prepareEmit();
     
     for (auto& pn : n)
         visitor.visit(pn);
+    
+    visitor.prepareEmit();
+    visitor.optimize(!noOptimizations);
 
     if (outputFormatIR)
         visitor.print(outfile);

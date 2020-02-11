@@ -65,15 +65,9 @@ Constant* Visitor::getInt32Const(int val)
     return ConstantInt::get(Type::getInt32Ty(TheContext), APInt(32, val, false));
 }
 
-Visitor::Visitor() : Builder(TheContext)
+Visitor::Visitor() : Builder(TheContext), 
+                        TheModule(std::make_unique<Module>("ylang", TheContext))
 {
-    TheModule = std::make_unique<Module>("ylang", TheContext);
-
-    PassBuilder PB;
-    PB.registerFunctionAnalyses(TheAnalysisManager);
-    ThePassManager = 
-        PB.buildFunctionSimplificationPipeline(PassBuilder::OptimizationLevel::O2, PassBuilder::ThinLTOPhase::None);
-
     // stdlib integration
         
     auto Str = StructType::create(TheContext, {Type::getInt8PtrTy(TheContext), Type::getInt32Ty(TheContext)}, "Str");
@@ -101,6 +95,31 @@ void Visitor::addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name
         FunctionType::get(retType, argsType, false),
         Function::ExternalLinkage, name, TheModule.get()
     );
+}
+
+void Visitor::optimize(bool doFullOptimizations) // 0 - minimal optimizations, 1 - full optimizations
+{
+    legacy::FunctionPassManager TheFunctionPassManager(TheModule.get());
+    legacy::PassManager TheModulePassManager;
+    PassManagerBuilder PMB;
+    if (doFullOptimizations) {
+        PMB.OptLevel = 3;
+        PMB.SizeLevel = 2;
+    } else {
+        PMB.OptLevel = 1;
+        PMB.SizeLevel = 0;
+    }
+    Machine->adjustPassManager(PMB);
+    
+    PMB.populateFunctionPassManager(TheFunctionPassManager);
+    PMB.populateModulePassManager(TheModulePassManager);
+    TheFunctionPassManager.doInitialization();
+    for (auto &f : *TheModule)
+    {
+        TheFunctionPassManager.run(f);
+    }
+    TheFunctionPassManager.doFinalization();
+    TheModulePassManager.run(*TheModule);
 }
 
 void Visitor::prepareEmit()
@@ -145,7 +164,7 @@ void Visitor::Emit(std::string filename)
     legacy::PassManager pass;
     auto FileType = TargetMachine::CGFT_ObjectFile;
 
-    if (Machine->addPassesToEmitFile(pass, dest, FileType))
+    if (Machine->addPassesToEmitFile(pass, dest, nullptr, FileType))
     {
         std::cerr << "Error emitting object file" << std::endl;
         exit(1);
@@ -244,7 +263,6 @@ Value* Visitor::visitFuncDef(FuncDefNode *context)
     {
         return LogErrorV("Error generating function body");
     }
-    ThePassManager.run(*F, TheAnalysisManager);
     return nullptr;
 }
 
@@ -502,7 +520,7 @@ Value* Visitor::visitBinOp(BinOpNode *context)
         if (leftTy->getContainedType(0)->getStructName() == "Str"
             && rightTy->getContainedType(0)->getStructName() == "Str"
             && op == "+")
-        {
+        {  // addition of strings = concatenation
             Value* newstr = (Value*)putAllocaInst(TheModule->getTypeByName("Str"), "");
             Builder.CreateCall(TheModule->getFunction("strcc"), {left, right, newstr});
             return newstr;

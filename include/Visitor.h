@@ -22,6 +22,7 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/Passes/PassBuilder.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include <algorithm>
 #include <cassert>
 #include <cctype>
@@ -49,6 +50,8 @@ public:
     Visitor();
 
     void prepareEmit();
+
+    void optimize(bool doFullOptimizations);
 
     void addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name);
 
@@ -98,8 +101,6 @@ public:
 
 private:
     LLVMContext TheContext;
-    FunctionPassManager ThePassManager;
-    FunctionAnalysisManager TheAnalysisManager;
     IRBuilder<> Builder;
     std::unique_ptr<Module> TheModule;
     std::map<std::string, AllocaInst*> NamedValues;
