@@ -13,7 +13,10 @@ std::vector<ParseNode*> Parser::parse()
             std::vector<std::pair<std::string, std::string>> members;
             expectKW("{");
             while (!peekKW("}"))
+            {
                 members.push_back(std::pair<std::string, std::string>(expect(Lexeme::LEX_ID), expect(Lexeme::LEX_ID)));
+                expectKW(";");
+            }
             eat(); // }
 
             code.push_back(new TypeDefNode(type_name, members));
@@ -34,86 +37,92 @@ std::vector<ParseNode*> Parser::parse()
 
             expectKW("(");
             // vector of <argtype, argname>
+
             std::vector<std::pair<std::string, std::string>> args;
-            while (!peekKW(")"))
-            {
+            if (!peekKW(")")) { // if next is ')', there are zero arguments
                 args.push_back(std::pair<std::string, std::string>(expect(Lexeme::LEX_ID), expect(Lexeme::LEX_ID)));
+                while (peekKW(","))
+                {
+                    eat(); // ,
+                    args.push_back(std::pair<std::string, std::string>(expect(Lexeme::LEX_ID), expect(Lexeme::LEX_ID)));
+                }
             }
-            eat(); // ")"
+            expectKW(")");
 
             if (!is_external)
             {
                 
-                ParseNode* body = parse_expr();     
+                ParseNode* body = parse_block();     
                 code.push_back(new FuncDefNode(rettype, fname, args, body));
             } else {
                 
                 code.push_back(new ExternFuncDefNode(rettype, fname, args));
             }
         } else
-            std::cerr << "Unexpected top-level token. Expected function or type definition" << std::endl;
+            std::cerr << "Unexpected top-level token. Expected function or type definition, found " << cur_lex->LType << "(" << cur_lex->LVal << ")" << std::endl;
     }
     return code;
 }
 
+ParseNode* Parser::parse_block()
+{
+    if (peekKW("{"))
+    {
+        eat(); // {
+        std::vector<ParseNode*> exprs;
+        exprs.push_back(parse_expr());
+        while (peekKW(";"))
+        {
+            eat(); // ;
+            if (peekKW("}")) break; // tolerate tailing semicolon
+            exprs.push_back(parse_expr());
+        }
+        expectKW("}");
+        return new BlockNode(exprs);
+    } else return parse_expr();
+}
+
 ParseNode* Parser::parse_expr()
 {
-    if (!peekKW("let") && !peekKW("do"))
-        return parse_letinexpr();
-    if (peekKW("do"))
+    if (peekKW("let"))
     {
-        eat(); // do
-        std::vector<ParseNode*> body;
-        expectKW("{");
-        while (!peekKW("}"))
-            body.push_back(parse_expr());
-        expectKW("}");
-        return new DoNode(body);
-    }
-    expectKW("let");
-    std::string name = expect(Lexeme::LEX_ID);
-    expectKW("=");
-    ParseNode* val = parse_letinexpr();
-    expectKW("in");
-    ParseNode* e = parse_expr();
-    
-    return new LetInNode(name, val, e);
-}
-
-ParseNode* Parser::parse_letinexpr()
-{
-    if (!peekKW("switch"))
-        return parse_switchexpr();
-    expectKW("switch");
-    ParseNode* lhs = parse_ifexpr();
-    
-    // vector of <rhs, case>
-    std::vector<std::pair<ParseNode*, ParseNode*>> cases;
-    while (peekKW("case"))
+        eat(); // let
+        std::string varName = expect(Lexeme::LEX_ID);
+        expectKW("=");
+        ParseNode* varVal = parse_expr();
+        return new LetNode(varName, varVal);
+    } else if (peekKW("if"))
     {
-        eat(); // case
-        ParseNode* rhs = parse_ifexpr();
-        ParseNode* case_ = parse_switchexpr();
-        cases.push_back(std::pair<ParseNode*, ParseNode*>(rhs, case_));
-    }
-    expectKW("else");
-    ParseNode* elsecase = parse_switchexpr();
-    return new SwitchNode(lhs, cases, elsecase);
+        eat(); // if
+        ParseNode* cond = parse_expr();
+        ParseNode* thenT = parse_expr();
+        expectKW("else");
+        ParseNode* elseT = parse_expr();
+        return new IfNode(cond, thenT, elseT);
+    } else if (peekKW("switch"))
+    {
+        eat(); // switch
+        ParseNode* lhs = parse_expr();
+
+        // vector of <rhs, case>
+        std::vector<std::pair<ParseNode*, ParseNode*>> cases;
+        while (peekKW("case"))
+        {
+            eat(); // case
+            ParseNode* rhs = parse_expr();
+            expectKW(":");
+            ParseNode* case_ = parse_expr();
+            cases.push_back(std::pair<ParseNode*, ParseNode*>(rhs, case_));
+        }
+        expectKW("else");
+        expectKW(":");
+        ParseNode* elsecase = parse_expr();
+        return new SwitchNode(lhs, cases, elsecase);
+
+    } else return parse_mathexpr();
 }
 
-ParseNode* Parser::parse_switchexpr()
-{
-    if (!peekKW("if"))
-        return parse_ifexpr();
-    expectKW("if");
-    ParseNode* cond = parse_ifexpr();
-    ParseNode* thenT = parse_expr();
-    expectKW("else");
-    ParseNode* elseT = parse_expr();
-    return new IfNode(cond, thenT, elseT);
-}
-
-ParseNode* Parser::parse_ifexpr()
+ParseNode* Parser::parse_mathexpr()
 {
     ParseNode* lhs = parse_cmpexpr();
     if (peekKW("==") || peekKW("!=") || peekKW("<") || peekKW(">") || peekKW("<=") || peekKW(">="))
@@ -151,12 +160,37 @@ ParseNode* Parser::parse_termexpr()
 
 ParseNode* Parser::parse_powexpr()
 {
-    ParseNode* lhs = parse_memberexpr();
+    ParseNode* lhs = parse_dotexpr();
     if (peekKW("^"))
     {
         eat();
         ParseNode* rhs = parse_powexpr();
         return new BinOpNode(lhs, "^", rhs);
+    }
+    return lhs;
+}
+
+ParseNode* Parser::parse_dotexpr()
+{
+    ParseNode* lhs = parse_memberexpr();
+    //lhs->print();
+    while (peekKW("."))
+    {
+        eat(); // .
+        std::string fname = expect(Lexeme::LEX_ID);
+        expectKW("(");
+        std::vector<ParseNode*> args;
+        args.push_back(lhs); // first arg is the thing before the dot
+        if (!peekKW(")")) {
+            args.push_back(parse_mathexpr());
+            while (peekKW(","))
+            {
+                eat();
+                args.push_back(parse_mathexpr());
+            }
+        }
+        expectKW(")");
+        lhs = new CallNode(fname, args);
     }
     return lhs;
 }
@@ -197,7 +231,7 @@ ParseNode* Parser::parse_atom()
     if (peekKW("("))
     {
         eat(); // (
-        ParseNode* e = parse_expr();
+        ParseNode* e = parse_mathexpr();
         expectKW(")");
         return e;
     }
@@ -208,9 +242,14 @@ ParseNode* Parser::parse_atom()
             return new VariableNode(id);
         eat(); // (
         std::vector<ParseNode*> args;
-        while (!peekKW(")"))
-            args.push_back(parse_expr());
-        eat(); // )
+        if (peekKW(")")) return new CallNode(id, args); // no arguments
+        args.push_back(parse_mathexpr());
+        while (peekKW(","))
+        {
+            eat();
+            args.push_back(parse_mathexpr());
+        }
+        expectKW(")");
         return new CallNode(id, args);
     }
     std::cerr << "Unexpected token. Type " << this->cur_lex->LType  << " " << this->cur_lex->LVal << std::endl;
@@ -241,7 +280,7 @@ std::string Parser::expect(int ltype)
 {
     if (!this->peek(ltype)) 
     {
-        std::cerr << "Unexpected token. Expected " << ltype << " but found " << this->cur_lex->LType << std::endl;
+        std::cerr << "Unexpected token. Expected " << ltype << " but found " << this->cur_lex->LType << "(" << this->cur_lex->LVal << ")" << std::endl;
         return "";
     } else return this->eat();
 }

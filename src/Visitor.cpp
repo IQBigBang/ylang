@@ -11,10 +11,10 @@ Value *Visitor::visit(ParseNode *n)
         return visitFuncDef(dynamic_cast<FuncDefNode *>(n));
     if (dynamic_cast<ExternFuncDefNode*>(n))
         return visitExternFuncDef(dynamic_cast<ExternFuncDefNode *>(n));
-    if (dynamic_cast<DoNode*>(n))
-        return visitDo(dynamic_cast<DoNode*>(n));
-    if (dynamic_cast<LetInNode*>(n))
-        return visitLetIn(dynamic_cast<LetInNode *>(n));
+    if (dynamic_cast<BlockNode*>(n))
+        return visitBlock(dynamic_cast<BlockNode*>(n));
+    if (dynamic_cast<LetNode*>(n))
+        return visitLet(dynamic_cast<LetNode*>(n));
     if (dynamic_cast<SwitchNode*>(n))
         return visitSwitch(dynamic_cast<SwitchNode *>(n));
     if (dynamic_cast<IfNode*>(n))
@@ -314,7 +314,7 @@ Value* Visitor::visitTypeDef(TypeDefNode* context)
     return nullptr;
 }
 
-Value* Visitor::visitDo(DoNode* context)
+Value* Visitor::visitBlock(BlockNode* context)
 {
     if (context->exprs.size() == 0)
         return LogErrorV("A do statement must contain at least one expression");
@@ -399,18 +399,20 @@ Value* Visitor::visitIf(IfNode *context)
     return (Value*)phi;
 }
 
-Value* Visitor::visitLetIn(LetInNode *context) {
+Value* Visitor::visitLet(LetNode *context) {
     Value* V = visit(context->val);
     if (!V)
         return nullptr;
 
-    if (NamedValues.count(context->name) != 0)
-        return LogErrorV("Duplicite let-in defintion");
-    
-    AllocaInst* all = putAllocaInst(V->getType(), context->name);
-    NamedValues[context->name] = all;
+    AllocaInst* all;
+    if (NamedValues.count(context->name) == 0)
+    {
+        all = putAllocaInst(V->getType(), context->name);
+        NamedValues[context->name] = all;
+    } else all = NamedValues[context->name];
+
     Builder.CreateStore(V, all);
-    return visit(context->in_expr);
+    return V;
 }
 
 Value *Visitor::visitCall(CallNode *context)

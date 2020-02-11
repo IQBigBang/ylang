@@ -62,33 +62,30 @@ struct ExternFuncDefNode : ParseNode
     }  
 };
 
-struct DoNode : ParseNode
+struct BlockNode : ParseNode
 {
     std::vector<ParseNode*> exprs;
-    DoNode(std::vector<ParseNode*> exprs) : exprs(exprs) {}
+    BlockNode(std::vector<ParseNode*> exprs) : exprs(exprs) {}
 
     virtual void print()
     {
-        std::cerr << "Do{";
+        std::cerr << "{";
         for (auto n : exprs)
             n->print();
         std::cerr << "}";
     }
 };
 
-struct LetInNode : ParseNode
+struct LetNode : ParseNode
 {
     std::string name;
     ParseNode* val;
-    ParseNode* in_expr;
-    LetInNode(std::string name, ParseNode* val, ParseNode* in_expr) : name(name), val(val), in_expr(in_expr) {}
+    LetNode(std::string name, ParseNode* val) : name(name), val(val) {}
 
     virtual void print()
     {
         std::cerr << "LetInNode{name=" << name << ", val=";
         val->print();
-        std::cerr << ", in=";
-        in_expr->print();
         std::cerr << "}";
     }
 };

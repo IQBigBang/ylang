@@ -16,35 +16,31 @@ public:
     Main parse function
 
     code := {defin} EOF;
-    defin := 'def' 'external' rettype=ID fname=ID '(' {type=ID arg=ID} ')'
-            | 'def' rettype=ID fname=ID '(' {type=ID arg=ID} ')' body=expr
+
+    defin :=  'type' typename=ID '{' { membertype=ID membername=ID ';' } '}'
+            | 'def' 'external' rettype=ID fname=ID '(' {type=ID arg=ID ',' } ')' # args split by colons
+            | 'def' rettype=ID fname=ID '(' {type=ID arg=ID ',' } ')' body=block # args split by colons
     */
     std::vector<ParseNode*> parse();
 
     /*
-    expr := letInExpr
-          | 'let' name=ID '=' val=letInExpr 'in' expr
-          | 'do' '{' {expr} '}'
+    block := expr | '{' expr {';' expr} '}'
+    */
+    ParseNode* parse_block();
+
+    /*
+    expr := ifExpr
+            | 'let' name=ID '=' val=expr
+            | 'switch' lhs=expr {'case' expr ':' expr} 'else' ':' expr
+            | 'if' cond=expr thenT=expr 'else' elseT=expr
     */
     ParseNode* parse_expr();
 
     /*
-    letInExpr := switchExpr
-            | 'switch' lhs=ifExpr {'case' ifExpr switchExpr} 'else' switchExpr
+    mathExpr := cmpExpr
+              | cmpExpr ('==' | '!=' | '<' | '>' | '<=' | '>=') cmpExpr
     */
-    ParseNode* parse_letinexpr();
-
-    /*
-    switchExpr := ifExpr
-            |  'if' cond=ifExpr thenT=expr 'else' elseT=expr
-    */
-    ParseNode* parse_switchexpr();
-
-    /*
-    ifExpr := cmpExpr
-            | cmpExpr ('==' | '!=' | '<' | '>' | '<=' | '>=') cmpExpr
-    */
-   ParseNode* parse_ifexpr();
+   ParseNode* parse_mathexpr();
 
     /*
     cmpExpr := termExpr
@@ -59,10 +55,16 @@ public:
     ParseNode* parse_termexpr();
 
     /*
-    powExpr := memberExpr
-            | memberExpr {'^' memberExpr} (right-assoc)
+    powExpr := dotExpr
+            | dotExpr {'^' dotExpr} (right-assoc)
     */
     ParseNode* parse_powexpr();
+
+    /*
+    dotExpr := memberExpr
+             | memberExpr {'.' ID '(' {expr ','} ')'} ')'}
+    */
+   ParseNode* parse_dotexpr();
 
     /*
     memberExpr := atom
@@ -72,7 +74,7 @@ public:
 
     /*
     atom := 'true' | 'false' | NUMBER | STRING
-        | '(' expr ')' | ID '(' {expr} ')' | ID
+        | '(' expr ')' | ID '(' {expr ','} ')' | ID
     */
     ParseNode* parse_atom();
 

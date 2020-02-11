@@ -57,6 +57,12 @@ Lexeme *Lexer::next()
         return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "{"};
     if (c == '}')
         return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "}"};
+    if (c == ';')
+        return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = ";"};
+    if (c == ',')
+        return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = ","};
+    if (c == '.')
+        return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "."};
     if (c == '=')
     {
         inp.get(c);

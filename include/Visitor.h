@@ -61,8 +61,8 @@ public:
     Value* visitTypeDef(TypeDefNode* context);
     Value* visitFuncDef(FuncDefNode* context);
     Value* visitExternFuncDef(ExternFuncDefNode* context);
-    Value* visitDo(DoNode* context);
-    Value* visitLetIn(LetInNode* context);
+    Value* visitBlock(BlockNode* context);
+    Value* visitLet(LetNode* context);
     Value* visitSwitch(SwitchNode* context);
     Value* visitIf(IfNode* context);
     Value* visitBinOp(BinOpNode* context);
