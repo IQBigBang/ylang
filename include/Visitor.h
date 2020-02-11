@@ -48,9 +48,7 @@ class  Visitor {
 public:
 
     Visitor();
-
-    void prepareEmit();
-
+    
     void optimize(bool doFullOptimizations);
 
     void addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name);

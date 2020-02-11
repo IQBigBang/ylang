@@ -4,4 +4,4 @@ bin/ylang
 obj/*
 ytest.o
 test/*
-stdlib/Std.o
+stdlib/*.o

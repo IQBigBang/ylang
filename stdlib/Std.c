@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "gc/tgc.h"
 
-// definitions
-
+// definition
 extern void _Wmain(void);
 struct Str {
     char* buf; 
     int len;
 };
+
+tgc_t GC;
 
 // -- Public STL --
 
@@ -25,27 +27,34 @@ void _Wprint_Str(struct Str* s)
 // -- Internal STL --
 
 // initialize a Str object from constant char array
-void strfc(struct Str* s, char* const_char, int len)
+
+void* alloc(int size)
 {
-    s->buf = (char*)malloc(len + 1);
-    memcpy(s->buf, const_char, len);
-    s->buf[len] = 0; // null byte
+    return tgc_alloc_opt(&GC, (size_t)size, 0, NULL); // is equal to tgc_alloc, just removes one unnecessary function call
+}
+
+struct Str* strfc(char* const_char, int len)
+{
+    struct Str* s = tgc_alloc(&GC, sizeof(struct Str));
+    s->buf = const_char;
     s->len = len;
 }
 
 // concat two Str objects
-void strcc(struct Str* s1, struct Str* s2, struct Str* dest)
+struct Str* strcc(struct Str* s1, struct Str* s2)
 {
-    dest->buf = (char*)malloc(s1->len + s2->len + 1); // allocate
+    struct Str* dest = tgc_alloc(&GC, sizeof(struct Str));
+    dest->buf = tgc_alloc(&GC, s1->len + s2->len + 1);
     memcpy(dest->buf, s1->buf, s1->len); // copy s1
     memcpy(dest->buf + s1->len, s2->buf, s2->len); // copy s2
     dest->buf[s1->len + s2->len] = 0; // null byte
-    free(s1->buf); // free s1
-    free(s2->buf); // free s2
     dest->len = s1->len + s2->len;
+    return dest;
 }
 
-int main() {
+int main(int argc, char** argv) {
+    tgc_start(&GC, &argc);
     _Wmain();
+    tgc_stop(&GC);
     return 0;
 }

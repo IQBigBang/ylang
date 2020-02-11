@@ -68,6 +68,33 @@ Constant* Visitor::getInt32Const(int val)
 Visitor::Visitor() : Builder(TheContext), 
                         TheModule(std::make_unique<Module>("ylang", TheContext))
 {
+    // machine initialization
+    InitializeAllTargetInfos();
+    InitializeAllTargets();
+    InitializeAllTargetMCs();
+    InitializeAllAsmParsers();
+    InitializeAllAsmPrinters();
+
+    auto TargetTriple = sys::getDefaultTargetTriple();
+    
+    std::string error;
+    auto Target = TargetRegistry::lookupTarget(TargetTriple, error);
+    if (!Target)
+    {
+        std::cout << "Error initializing target: " << error << std::endl;
+        exit(1);
+    }
+
+    auto CPU = "generic";
+    auto Features = "";
+
+    TargetOptions opt;
+    auto RM = Optional<Reloc::Model>();
+    Machine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
+
+    TheModule->setDataLayout(Machine->createDataLayout());
+    TheModule->setTargetTriple(TargetTriple);
+
     // stdlib integration
         
     auto Str = StructType::create(TheContext, {Type::getInt8PtrTy(TheContext), Type::getInt32Ty(TheContext)}, "Str");
@@ -79,14 +106,16 @@ Visitor::Visitor() : Builder(TheContext),
         { Str->getPointerTo() }, "_Wprint_Str");
     
     // internal STL
-    // void Strfc(struct Str* s, char* const_char, int len)
-    addSTLFunction(Type::getVoidTy(TheContext),
-        { Str->getPointerTo(), Type::getInt8PtrTy(TheContext), Type::getInt32Ty(TheContext)}, "strfc");
-    // void strcc(struct Str* s1, struct Str* s2, struct Str* dest)
-    addSTLFunction(Type::getVoidTy(TheContext),
-        { Str->getPointerTo(), Str->getPointerTo(), Str->getPointerTo()}, "strcc");
-    addSTLFunction(Type::getInt8PtrTy(TheContext),
-        { Type::getInt64Ty(TheContext) }, "malloc");
+
+    // void* alloc(int size)
+    addSTLFunction(Type::getVoidTy(TheContext)->getPointerTo(), {Type::getInt32Ty(TheContext)}, "alloc");
+
+    // struct Str* strfc(char* const_char, int len)
+    addSTLFunction(Str->getPointerTo(),
+        {Type::getInt8PtrTy(TheContext), Type::getInt32Ty(TheContext)}, "strfc");
+    // struct Str* strcc(struct Str* s1, struct Str* s2)
+    addSTLFunction(Str->getPointerTo(),
+        { Str->getPointerTo(), Str->getPointerTo()}, "strcc");
 }
 
 void Visitor::addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name)
@@ -120,35 +149,6 @@ void Visitor::optimize(bool doFullOptimizations) // 0 - minimal optimizations, 1
     }
     TheFunctionPassManager.doFinalization();
     TheModulePassManager.run(*TheModule);
-}
-
-void Visitor::prepareEmit()
-{
-    InitializeAllTargetInfos();
-    InitializeAllTargets();
-    InitializeAllTargetMCs();
-    InitializeAllAsmParsers();
-    InitializeAllAsmPrinters();
-
-    auto TargetTriple = sys::getDefaultTargetTriple();
-    
-    std::string error;
-    auto Target = TargetRegistry::lookupTarget(TargetTriple, error);
-    if (!Target)
-    {
-        std::cout << "Error initializing target: " << error << std::endl;
-        exit(1);
-    }
-
-    auto CPU = "generic";
-    auto Features = "";
-
-    TargetOptions opt;
-    auto RM = Optional<Reloc::Model>();
-    Machine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
-
-    TheModule->setDataLayout(Machine->createDataLayout());
-    TheModule->setTargetTriple(TargetTriple);
 }
 
 void Visitor::Emit(std::string filename)
@@ -283,11 +283,9 @@ Value* Visitor::visitTypeDef(TypeDefNode* context)
     auto newS = StructType::create(TheContext, memberTypes, context->name, false);
     StructMembers[context->name] = memberNames;
 
-    memberTypes.insert(memberTypes.begin(), newS->getPointerTo()); // for the constructor
-
     auto constructor = Function::Create(
         FunctionType::get(
-            Type::getVoidTy(TheContext),
+            newS->getPointerTo(),
             memberTypes, 
             false
         ), Function::ExternalLinkage, mangleFuncName(context->name, memberTypes), TheModule.get()
@@ -295,18 +293,23 @@ Value* Visitor::visitTypeDef(TypeDefNode* context)
     BasicBlock* BB = BasicBlock::Create(TheContext, "entry", constructor);
     Builder.SetInsertPoint(BB);
 
-    int i = -1;
+    // first allocate place for the structure
+    
+    Value* allocated_object = (Value*)Builder.CreatePointerCast((Value*)Builder.CreateCall(TheModule->getFunction("alloc"), {
+        getInt32Const(TheModule->getDataLayout().getTypeAllocSize(newS))
+    }), newS->getPointerTo(), "obj");
+
+    int i = 0;
     for (auto& a : constructor->args())
     {
-        ++i;
-        if (i == 0) continue;
-        Value* member = (Value*)GetElementPtrInst::CreateInBounds(constructor->args().begin(), 
-            {getInt32Const(0), getInt32Const(i - 1)}, 
-            memberNames[i - 1], BB        
+        Value* member = (Value*)GetElementPtrInst::CreateInBounds(allocated_object, 
+            {getInt32Const(0), getInt32Const(i)}, 
+            memberNames[i], BB        
         );
         Builder.CreateStore(&a, member);
+        ++i;
     }
-    Builder.CreateRetVoid();
+    Builder.CreateRet(allocated_object);
 
     return nullptr;
 }
@@ -415,14 +418,6 @@ Value *Visitor::visitCall(CallNode *context)
     std::vector<Value *> Args;
     std::vector<Type *> ArgTypes;
 
-    Value* allocatedObj;
-    if (std::isupper(context->fname[0])) // a constructor call
-    {
-        allocatedObj = Builder.CreateAlloca(TheModule->getTypeByName(context->fname));
-        Args.push_back(allocatedObj);
-        ArgTypes.push_back(allocatedObj->getType());
-    }
-
     for (auto &a : context->args)
     {
         Args.push_back(visit(a));
@@ -436,11 +431,6 @@ Value *Visitor::visitCall(CallNode *context)
     if (!F)
         return LogErrorV("Undefined function or constructor. Check name spelling and correct argument types");
 
-    if (std::isupper(context->fname[0])) // if constructor, return the object not void
-    {
-        Builder.CreateCall(F, Args);
-        return allocatedObj;
-    }
     return (Value *)Builder.CreateCall(F, Args);
 }
 
@@ -521,9 +511,7 @@ Value* Visitor::visitBinOp(BinOpNode *context)
             && rightTy->getContainedType(0)->getStructName() == "Str"
             && op == "+")
         {  // addition of strings = concatenation
-            Value* newstr = (Value*)putAllocaInst(TheModule->getTypeByName("Str"), "");
-            Builder.CreateCall(TheModule->getFunction("strcc"), {left, right, newstr});
-            return newstr;
+            return (Value*)Builder.CreateCall(TheModule->getFunction("strcc"), {left, right});
         }
     }
 
@@ -531,14 +519,11 @@ Value* Visitor::visitBinOp(BinOpNode *context)
 }
 
 Value* Visitor::visitString(StringNode *context) {
-    Value* strobj = putAllocaInst(TheModule->getTypeByName("Str"), ""); // create Str object
     Value* globstr = Builder.CreateGlobalStringPtr(context->val, "conststr"); // create string constant
 
-    Builder.CreateCall(TheModule->getFunction("strfc"), {strobj, globstr, 
+    return (Value*)Builder.CreateCall(TheModule->getFunction("strfc"), {globstr, 
         getInt32Const(context->val.size())
     });
-
-    return (Value*)strobj;
 }
 
 Value* Visitor::visitVariable(VariableNode *context) {
