@@ -66,6 +66,7 @@ public:
     Value* visitSwitch(SwitchNode* context);
     Value* visitIf(IfNode* context);
     Value* visitBinOp(BinOpNode* context);
+    Value* visitUnOp(UnaryOpNode* context);
     Value* visitMemberAccess(MemberAccessNode* context);
     Value* visitBool(BoolNode* context);
     Value* visitNumber(NumberNode* context);

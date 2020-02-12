@@ -21,6 +21,8 @@ Value *Visitor::visit(ParseNode *n)
         return visitIf(dynamic_cast<IfNode *>(n));
     if (dynamic_cast<BinOpNode*>(n))
         return visitBinOp(dynamic_cast<BinOpNode *>(n));
+    if (dynamic_cast<UnaryOpNode*>(n))
+        return visitUnOp(dynamic_cast<UnaryOpNode*>(n));
     if (dynamic_cast<MemberAccessNode*>(n))
         return visitMemberAccess(dynamic_cast<MemberAccessNode *>(n));
     if (dynamic_cast<BoolNode*>(n))
@@ -461,6 +463,20 @@ Value* Visitor::visitMemberAccess(MemberAccessNode *context) {
         {getInt32Const(0), getInt32Const(index)}, 
     "", Builder.GetInsertBlock());
     return Builder.CreateLoad(member_ptr, context->member);
+}
+
+Value* Visitor::visitUnOp(UnaryOpNode* context)
+{
+    Value* inner = visit(context->inner);
+    if (!inner)
+        return LogErrorV("Invalid operand");
+    if (inner->getType()->isDoubleTy())
+    {
+        if (context->op == "-")
+            return (Value*)Builder.CreateFNeg(inner);
+        return LogErrorV("Invalid unary operand");
+    }
+    return LogErrorV("Invalid unary operation");
 }
 
 Value* Visitor::visitBinOp(BinOpNode *context)

@@ -147,6 +147,20 @@ struct BinOpNode : ParseNode
     }
 };
 
+struct UnaryOpNode : ParseNode
+{
+    std::string op;
+    ParseNode* inner;
+    UnaryOpNode(std::string op, ParseNode* inner) : op(op), inner(inner) {}
+
+    virtual void print()
+    {
+        std::cerr << "UnOp{op=" << op << ", in="; 
+        inner->print();
+        std::cerr << "}";
+    }
+};
+
 struct MemberAccessNode : ParseNode
 {
     ParseNode* obj;

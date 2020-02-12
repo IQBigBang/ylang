@@ -160,7 +160,7 @@ ParseNode* Parser::parse_termexpr()
 
 ParseNode* Parser::parse_powexpr()
 {
-    ParseNode* lhs = parse_dotexpr();
+    ParseNode* lhs = parse_unaryexpr();
     if (peekKW("^"))
     {
         eat();
@@ -168,6 +168,15 @@ ParseNode* Parser::parse_powexpr()
         return new BinOpNode(lhs, "^", rhs);
     }
     return lhs;
+}
+
+ParseNode* Parser::parse_unaryexpr()
+{
+    if (peekKW("-")) {
+        eat(); // -
+        return new UnaryOpNode("-", parse_dotexpr());
+    }
+    return parse_dotexpr();
 }
 
 ParseNode* Parser::parse_dotexpr()

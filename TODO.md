@@ -4,9 +4,9 @@ Bugfixes:
 - Minimize build warnings
 - Refactor code for better readability and maintainability (?)
 - ~~Get rid of redundant code (e.g. 'lastValType')~~
-- Unary minus
+- ~~Unary minus~~
 - ~~Numbers not correctly passed into IR~~
-- Comments not working
+- ~~Comments not working~~
 - ~~Optimizations segfaulting~~
 
 Enhancements:
@@ -32,6 +32,7 @@ Enhancements:
 - Make the language more "imperative" (partly finished)
 - ~~Syntax changes~~
 - Add tests!
+- __Documentation__
 
 New features:
 - JIT compiler

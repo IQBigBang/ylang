@@ -55,10 +55,15 @@ public:
     ParseNode* parse_termexpr();
 
     /*
-    powExpr := dotExpr
-            | dotExpr {'^' dotExpr} (right-assoc)
+    powExpr := unaryExpr
+            | unaryExpr {'^' unaryExpr} (right-assoc)
     */
     ParseNode* parse_powexpr();
+
+    /*
+    unaryExpr := ['-'] dotExpr
+    */
+    ParseNode* parse_unaryexpr();
 
     /*
     dotExpr := memberExpr

@@ -19,18 +19,18 @@ Lexeme *Lexer::next()
     if (inp.eof() || c == std::istream::traits_type::eof() || c == 0)
         return new Lexeme{.LType = Lexeme::LEX_EOF};
 
-    if (std::isspace(c)) // skip whitespace
+    // skip whitespace and comments
+    while (std::isspace(c) || c == '#')
     {
-        while (std::isspace(c = inp.get()))
-            ;
-    }
-
-    // comments
-    if (c == '#')
-    {
-        while (inp.get() != '\n')
-            ;
-        inp.get(c); // skip the newline char
+        if (std::isspace(c))
+        {
+           while (std::isspace(c = inp.get())) {} 
+        }
+        if (c == '#')
+        {
+            while (inp.get() != '\n') {}
+            inp.get(c); // skip the newline char
+        }
     }
 
     if (c == '+')
