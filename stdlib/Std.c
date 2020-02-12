@@ -16,7 +16,17 @@ tgc_t GC;
 
 void _Wprint_n(double d)
 {
-    printf("%f\n", d);
+    char buf[20];
+    snprintf(buf, 20, "%.7f", d);
+    for (int i = strlen(buf) - 1; i > 0; --i)
+    {
+        if (buf[i] == '0')
+            buf[i] = 0; // remove the tailing zeros by terminating the string
+        else break;
+    }
+    // if the number is an integer, remove the tailing dot   
+    if (buf[strlen(buf) - 1] == '.') buf[strlen(buf) - 1] = '\0';
+    puts(buf);
 }
 
 void _Wprint_Str(struct Str* s)

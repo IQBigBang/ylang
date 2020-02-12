@@ -38,6 +38,10 @@ int main(int argc, char** argv) {
 
     std::ifstream stream;
     stream.open(args::get(source));
+    if (stream.fail() || !stream.is_open()) {
+        std::cout << "Error while opening the source file!" << std::endl;
+        return 1;
+    }
     
     Lexer lexer(stream);
     Parser parser(lexer);
