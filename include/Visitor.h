@@ -42,7 +42,7 @@ using namespace llvm;
 
 /**
  * This class defines an abstract visitor for a parse tree
- * produced by YlangParser.
+ * produced by the parser
  */
 class  Visitor {
 public:
@@ -65,6 +65,7 @@ public:
     Value* visitLet(LetNode* context);
     Value* visitSwitch(SwitchNode* context);
     Value* visitIf(IfNode* context);
+    Value* visitWhile(WhileNode* context);
     Value* visitBinOp(BinOpNode* context);
     Value* visitUnOp(UnaryOpNode* context);
     Value* visitMemberAccess(MemberAccessNode* context);

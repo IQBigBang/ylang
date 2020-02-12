@@ -17,26 +17,28 @@ Enhancements:
 - ~~Make language more functional (__removed goal__)~~
 - ~~Switch statement~~
 - Multi-condition cases (in switch)
-- While statement
-- For statement
 - Better 'if' statements
 - ~~Structs~~
 - Syntax simplification
 - External and unmangled functions
 - Better error reporting
 - ~~Strings~~
-- Type casting
-- Match statement (simple pattern matching)
 - Line counting (for better errors)
+- Improve keyword and special symbol handling in the lexer
 - ~~Do expression (multiple statements wrapper)~~
 - Make the language more "imperative" (partly finished)
+- Add a `pass` statement (to allow for empty blocks)
 - ~~Syntax changes~~
-- Add tests!
-- __Documentation__
 
 New features:
 - JIT compiler
 - ~~Optimizer~~
+- ~~While statement~~
+- For statement
+- Type casting
+- Match statement (simple pattern matching)
+- Add tests!
+- __Documentation__
 - Sum types
 - ~~Pointers (__removed goal__)~~
 - Full std library

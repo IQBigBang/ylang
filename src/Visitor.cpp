@@ -17,6 +17,8 @@ Value *Visitor::visit(ParseNode *n)
         return visitLet(dynamic_cast<LetNode*>(n));
     if (dynamic_cast<SwitchNode*>(n))
         return visitSwitch(dynamic_cast<SwitchNode *>(n));
+    if (dynamic_cast<WhileNode*>(n))
+        return visitWhile(dynamic_cast<WhileNode*>(n));
     if (dynamic_cast<IfNode*>(n))
         return visitIf(dynamic_cast<IfNode *>(n));
     if (dynamic_cast<BinOpNode*>(n))
@@ -399,6 +401,31 @@ Value* Visitor::visitIf(IfNode *context)
     phi->addIncoming(elseVal, elseBlock);
 
     return (Value*)phi;
+}
+
+Value* Visitor::visitWhile(WhileNode* context) {
+    BasicBlock* cond = BasicBlock::Create(TheContext, "whilecond");
+    BasicBlock* body = BasicBlock::Create(TheContext, "whilebody");
+    BasicBlock* exit = BasicBlock::Create(TheContext, "whileexit");
+    Function* currF = Builder.GetInsertBlock()->getParent();
+
+    Builder.CreateBr(cond); // create a jump to the condition
+    currF->getBasicBlockList().push_back(cond); // now emit the condition block
+    Builder.SetInsertPoint(cond);
+    Value* compiled_cond = visit(context->cond);
+    if (!compiled_cond->getType()->isIntegerTy(1))
+        return LogErrorV("While statement condition must be of type boolean");
+    Builder.CreateCondBr(compiled_cond, body, exit); // the main loop - if cond = true, next loop else exit
+
+    currF->getBasicBlockList().push_back(body); // now emit body
+    Builder.SetInsertPoint(body);
+    visit(context->body); // compile it
+    Builder.CreateBr(cond); // return back to the condition
+
+    currF->getBasicBlockList().push_back(exit);
+    Builder.SetInsertPoint(exit);
+    
+    return (Value*)nullptr; // void
 }
 
 Value* Visitor::visitLet(LetNode *context) {

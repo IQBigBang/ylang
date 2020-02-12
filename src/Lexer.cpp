@@ -158,6 +158,8 @@ Lexeme *Lexer::next()
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "true"};
         if (id == "false")
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "false"};
+        if (id == "while")
+            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "while"};
         return new Lexeme{.LType = Lexeme::LEX_ID, .LVal = id};
     }
 

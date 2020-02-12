@@ -29,10 +29,11 @@ public:
     ParseNode* parse_block();
 
     /*
-    expr := ifExpr
+    expr := mathExpr
             | 'let' name=ID '=' val=expr
-            | 'switch' lhs=expr {'case' expr ':' expr} 'else' ':' expr
-            | 'if' cond=expr thenT=expr 'else' elseT=expr
+            | 'switch' lhs=expr {'case' expr ':' block} 'else' ':' block
+            | 'if' cond=expr thenT=block 'else' elseT=block
+            | 'while' cond=expr body=block
     */
     ParseNode* parse_expr();
 

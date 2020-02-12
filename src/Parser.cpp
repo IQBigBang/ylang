@@ -95,9 +95,9 @@ ParseNode* Parser::parse_expr()
     {
         eat(); // if
         ParseNode* cond = parse_expr();
-        ParseNode* thenT = parse_expr();
+        ParseNode* thenT = parse_block();
         expectKW("else");
-        ParseNode* elseT = parse_expr();
+        ParseNode* elseT = parse_block();
         return new IfNode(cond, thenT, elseT);
     } else if (peekKW("switch"))
     {
@@ -111,14 +111,17 @@ ParseNode* Parser::parse_expr()
             eat(); // case
             ParseNode* rhs = parse_expr();
             expectKW(":");
-            ParseNode* case_ = parse_expr();
+            ParseNode* case_ = parse_block();
             cases.push_back(std::pair<ParseNode*, ParseNode*>(rhs, case_));
         }
         expectKW("else");
         expectKW(":");
-        ParseNode* elsecase = parse_expr();
+        ParseNode* elsecase = parse_block();
         return new SwitchNode(lhs, cases, elsecase);
 
+    } else if (peekKW("while")) {
+        eat(); // while
+        return new WhileNode(parse_expr(), parse_block());
     } else return parse_mathexpr();
 }
 

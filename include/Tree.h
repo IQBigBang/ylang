@@ -84,7 +84,7 @@ struct LetNode : ParseNode
 
     virtual void print()
     {
-        std::cerr << "LetInNode{name=" << name << ", val=";
+        std::cerr << "LetNode{name=" << name << ", val=";
         val->print();
         std::cerr << "}";
     }
@@ -127,6 +127,21 @@ struct IfNode : ParseNode
         std::cerr << "IfNode{cond="; cond->print();
         std::cerr << ", then="; thenT->print();
         std::cerr << ", else="; elseT->print();
+        std::cerr << "}";
+    }
+
+};
+
+struct WhileNode : ParseNode
+{
+    ParseNode* cond;
+    ParseNode* body;
+    WhileNode(ParseNode* cond, ParseNode* body) : cond(cond), body(body) {}
+    
+    virtual void print()
+    {
+        std::cerr << "WhileNode{cond="; cond->print();
+        std::cerr << ", body="; body->print();
         std::cerr << "}";
     }
 
