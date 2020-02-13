@@ -22,7 +22,10 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/Passes/PassBuilder.h"
+#include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include "llvm/Transforms/IPO/Inliner.h"
+#include "llvm/Analysis/InlineCost.h"
 #include <algorithm>
 #include <cassert>
 #include <cctype>

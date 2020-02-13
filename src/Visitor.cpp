@@ -141,6 +141,8 @@ void Visitor::optimize(bool doFullOptimizations) // 0 - minimal optimizations, 1
     if (doFullOptimizations) {
         PMB.OptLevel = 3;
         PMB.SizeLevel = 2;
+        InlineParams ip = getInlineParams(3, 2);
+        PMB.Inliner = createFunctionInliningPass(ip);
     } else {
         PMB.OptLevel = 1;
         PMB.SizeLevel = 0;
