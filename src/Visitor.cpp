@@ -543,6 +543,10 @@ Value* Visitor::visitUnOp(UnaryOpNode* context)
     {
         if (context->op == "-")
             return (Value*)Builder.CreateFNeg(inner);
+    } else if (inner->getType()->isIntegerTy(1))
+    {
+        if (context->op == "!")
+            return (Value*)Builder.CreateNot(inner);
     }
     err::throwNonfatal("Invalid unary operation", "", context->lineno);
     return nullptr;
@@ -585,6 +589,10 @@ Value* Visitor::visitBinOp(BinOpNode *context)
             return (Value*)Builder.CreateICmpEQ(left, right);
         else if (op == "!=")
             return (Value*)Builder.CreateICmpNE(left, right);
+        else if (op == "and")
+            return (Value*)Builder.CreateAnd(left, right);
+        else if (op == "or")
+            return (Value*)Builder.CreateOr(left, right);
     } else if (leftTy->isPointerTy() && leftTy->getContainedType(0)->isStructTy()
             && rightTy->isPointerTy() && rightTy->getContainedType(0)->isStructTy())
     {

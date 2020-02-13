@@ -133,6 +133,18 @@ ParseNode* Parser::parse_expr()
 
 ParseNode* Parser::parse_mathexpr()
 {
+    ParseNode* lhs = parse_boolexpr();
+    while (peekKW("and") || peekKW("or"))
+    {
+        std::string op = eat();
+        ParseNode* rhs = parse_boolexpr();
+        lhs = new BinOpNode(l.getLine(), lhs, op, rhs);
+    }
+    return lhs;
+}
+
+ParseNode* Parser::parse_boolexpr()
+{
     ParseNode* lhs = parse_cmpexpr();
     if (peekKW("==") || peekKW("!=") || peekKW("<") || peekKW(">") || peekKW("<=") || peekKW(">="))
     {
@@ -181,9 +193,9 @@ ParseNode* Parser::parse_powexpr()
 
 ParseNode* Parser::parse_unaryexpr()
 {
-    if (peekKW("-")) {
-        eat(); // -
-        return new UnaryOpNode(l.getLine(), "-", parse_dotexpr());
+    if (peekKW("-") || peekKW("!")) {
+        std::string op = eat();
+        return new UnaryOpNode(l.getLine(), op, parse_unaryexpr());
     }
     return parse_dotexpr();
 }

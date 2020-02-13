@@ -25,8 +25,8 @@ Enhancements:
 - Syntax simplification
 - In-place assign (`+=`, `-=` ...)
 - External and unmangled functions
-- More unary operations (`!`, ...) - Lexer.cpp:99
-- Boolean operators (`and` ,`or`)
+- ~~More unary operations (`!`, ...) - Lexer.cpp:99~~
+- ~~Boolean operators (`and` ,`or`)~~
 - ~~Better error reporting~~
 - ~~Strings~~
 - ~~Line counting (for better errors)~~
@@ -36,6 +36,7 @@ Enhancements:
 - Add a `pass` statement (to allow for empty blocks)
 - ~~Syntax changes~~
 - Update to non-legacy pass manager - Visitor.cpp:170
+- `include` syntax (for multiple files)
 
 
 

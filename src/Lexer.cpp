@@ -96,7 +96,7 @@ Lexeme *Lexer::next()
         if (c == '=')
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "!="};
         inp.unget();
-        std::cerr << "Unrecognized token '!'" << std::endl; // TODO: boolean negation
+        return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "!"};
     }
     if (c == '<')
     {
@@ -155,8 +155,6 @@ Lexeme *Lexer::next()
         inp.unget();
         if (id == "def")
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "def"};
-        if (id == "do")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "do"};
         if (id == "external")
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "external"};
         if (id == "type")
@@ -171,8 +169,10 @@ Lexeme *Lexer::next()
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "case"};
         if (id == "let")
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "let"};
-        if (id == "in")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "in"};
+        if (id == "and")
+            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "and"};
+        if (id == "or")
+            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "or"};
         if (id == "true")
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "true"};
         if (id == "false")

@@ -38,10 +38,16 @@ public:
     ParseNode* parse_expr();
 
     /*
-    mathExpr := cmpExpr
+    mathExpr := boolExpr
+              | boolExpr {('and' | 'or') boolExpr}
+    */
+    ParseNode* parse_mathexpr();
+
+    /*
+    boolExpr := cmpExpr
               | cmpExpr ('==' | '!=' | '<' | '>' | '<=' | '>=') cmpExpr
     */
-   ParseNode* parse_mathexpr();
+   ParseNode* parse_boolexpr();
 
     /*
     cmpExpr := termExpr
