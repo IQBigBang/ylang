@@ -10,23 +10,23 @@ Bugfixes:
 - ~~Optimizations segfaulting~~
 - Correct decimal separator handling - Lexer.cpp:137
 
-Code improvements:
-- 
-- 
+
 
 Enhancements:
 - ~~Improve function definition grammar~~
 - ~~Local variables~~
-- ~~Multistatement functions and return statement (__removed goal due to design changes__)~~
+- ~~Multistatement functions and return statement (_removed goal due to design changes_)~~
 - ~~If statement~~
-- ~~Make language more functional (__removed goal__)~~
+- ~~Make language more functional (_removed goal_)~~
 - ~~Switch statement~~
 - Multi-condition `case`s (in `switch`)
 - Better `if` statements
 - ~~Structs~~
 - Syntax simplification
+- In-place assign (`+=`, `-=` ...)
 - External and unmangled functions
 - More unary operations (`!`, ...) - Lexer.cpp:99
+- Boolean operators (`and` ,`or`)
 - ~~Better error reporting~~
 - ~~Strings~~
 - ~~Line counting (for better errors)~~
@@ -37,6 +37,8 @@ Enhancements:
 - ~~Syntax changes~~
 - Update to non-legacy pass manager - Visitor.cpp:170
 
+
+
 New features:
 - JIT compiler
 - ~~Optimizer~~
@@ -44,10 +46,11 @@ New features:
 - `for` statement
 - Type casting
 - `match` statement (simple pattern matching)
-- Add tests!
+- **Generics**
+- **Add tests!**
 - __Documentation__
 - Sum types
-- ~~Pointers (__removed goal__)~~
+- ~~Pointers (_removed goal_)~~
 - Full std library
 - Type inference
 - Operator overloading (and perhaps more operators)
