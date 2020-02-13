@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include "Lexer.h"
+#include "Errors.h"
 
 std::ostream& operator<<(std::ostream& os, Lexeme& l)
 {
@@ -9,6 +10,22 @@ std::ostream& operator<<(std::ostream& os, Lexeme& l)
     else
         os << " '" << l.LVal << "' }";
     return os;
+}
+
+std::string LTypeToStr(int ltype)
+{
+    switch (ltype) {
+        case 0: return "Keyword/Symbol";
+        case 1: return "Identifier";
+        case 2: return "Number";
+        case 3: return "String";
+        default: return "EOF";
+    }
+}
+
+int Lexer::getLine()
+{
+    return this->line;
 }
 
 Lexeme *Lexer::next()
@@ -24,7 +41,9 @@ Lexeme *Lexer::next()
     {
         if (std::isspace(c))
         {
-           while (std::isspace(c = inp.get())) {} 
+            do {
+                if (c == '\n') ++line; // line counting
+            } while (std::isspace(c = inp.get()));
         }
         if (c == '#')
         {
@@ -77,7 +96,7 @@ Lexeme *Lexer::next()
         if (c == '=')
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "!="};
         inp.unget();
-        std::cerr << "Unrecognized token '!'" << std::endl;
+        std::cerr << "Unrecognized token '!'" << std::endl; // TODO: boolean negation
     }
     if (c == '<')
     {
@@ -115,7 +134,7 @@ Lexeme *Lexer::next()
             if (c == '.')
             {
                 if (num.find(c) != std::string::npos)
-                {
+                { // TODO: this is not correct handling (e.g. 1.2.sq() -> sq(1.2))
                     std::cerr << "The number cannot contain two decimal separators" << std::endl;
                     break;
                 }
@@ -166,6 +185,6 @@ Lexeme *Lexer::next()
     if (inp.eof() || c == std::istream::traits_type::eof() || c == 0)
         return new Lexeme{.LType = Lexeme::LEX_EOF};
 
-    std::cerr << "Invalid token '" << c << "'" << std::endl;
+    err::throwNonfatal("Invalid token '" + std::string(1, c) + "'", "", line);
     return next();
 }

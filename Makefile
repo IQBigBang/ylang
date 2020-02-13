@@ -1,7 +1,7 @@
 CXX = clang++-9
 CPPFLAGS = -g `llvm-config --cxxflags --ldflags --libs --libfiles --system-libs` -fexceptions --std=c++14
 
-OBJECTS = Lexer.o Parser.o Visitor.o main.o
+OBJECTS = Lexer.o Parser.o Visitor.o main.o Errors.o
 OBJDIR = obj/
 
 SRCDIR = src/

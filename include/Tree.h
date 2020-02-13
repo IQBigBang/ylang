@@ -13,10 +13,11 @@ struct ParseNode
 
 struct TypeDefNode : ParseNode
 {
+    int lineno;
     std::string name;
     std::vector<std::pair<std::string, std::string>> members;
-    TypeDefNode(std::string name, std::vector<std::pair<std::string, std::string>> members)
-        : name(name), members(members) {}
+    TypeDefNode(int lineno, std::string name, std::vector<std::pair<std::string, std::string>> members)
+        : lineno(lineno), name(name), members(members) {}
     virtual void print()
     {
         std::cerr << "Typedef{name=" << name << ", members=[";
@@ -28,12 +29,13 @@ struct TypeDefNode : ParseNode
 
 struct FuncDefNode : ParseNode
 {
+    int lineno;
     std::string rettype;
     std::string fname;
     std::vector<std::pair<std::string, std::string>> args;
     ParseNode* body;
-    FuncDefNode(std::string rettype, std::string fname, std::vector<std::pair<std::string, std::string>> args, ParseNode* body)
-        : rettype(rettype), fname(fname), args(args), body(body) {}
+    FuncDefNode(int lineno, std::string rettype, std::string fname, std::vector<std::pair<std::string, std::string>> args, ParseNode* body)
+        : lineno(lineno), rettype(rettype), fname(fname), args(args), body(body) {}
     virtual void print()
     {
         std::cerr << "FuncDef{ret=" << rettype << ", name=" << fname << ", args=[";
@@ -47,11 +49,12 @@ struct FuncDefNode : ParseNode
 
 struct ExternFuncDefNode : ParseNode
 {
+    int lineno;
     std::string rettype;
     std::string fname;
     std::vector<std::pair<std::string, std::string>> args;
-    ExternFuncDefNode(std::string rettype, std::string fname, std::vector<std::pair<std::string, std::string>> args)
-        : rettype(rettype), fname(fname), args(args) {}  
+    ExternFuncDefNode(int lineno, std::string rettype, std::string fname, std::vector<std::pair<std::string, std::string>> args)
+        : lineno(lineno), rettype(rettype), fname(fname), args(args) {}  
 
     virtual void print()
     {
@@ -64,8 +67,9 @@ struct ExternFuncDefNode : ParseNode
 
 struct BlockNode : ParseNode
 {
+    int lineno;
     std::vector<ParseNode*> exprs;
-    BlockNode(std::vector<ParseNode*> exprs) : exprs(exprs) {}
+    BlockNode(int lineno, std::vector<ParseNode*> exprs) : lineno(lineno), exprs(exprs) {}
 
     virtual void print()
     {
@@ -78,9 +82,10 @@ struct BlockNode : ParseNode
 
 struct LetNode : ParseNode
 {
+    int lineno;
     std::string name;
     ParseNode* val;
-    LetNode(std::string name, ParseNode* val) : name(name), val(val) {}
+    LetNode(int lineno, std::string name, ParseNode* val) : lineno(lineno), name(name), val(val) {}
 
     virtual void print()
     {
@@ -92,11 +97,12 @@ struct LetNode : ParseNode
 
 struct SwitchNode : ParseNode
 {
+    int lineno;
     ParseNode* lhs;
     std::vector<std::pair<ParseNode*, ParseNode*>> cases;
     ParseNode* elsecase;
-    SwitchNode(ParseNode* lhs, std::vector<std::pair<ParseNode*, ParseNode*>> cases, ParseNode* elsecase) 
-        : lhs(lhs), cases(cases), elsecase(elsecase) {}
+    SwitchNode(int lineno, ParseNode* lhs, std::vector<std::pair<ParseNode*, ParseNode*>> cases, ParseNode* elsecase) 
+        : lineno(lineno), lhs(lhs), cases(cases), elsecase(elsecase) {}
     
     virtual void print()
     {
@@ -117,10 +123,12 @@ struct SwitchNode : ParseNode
 
 struct IfNode : ParseNode
 {
+    int lineno;
     ParseNode* cond;
     ParseNode* thenT;
     ParseNode* elseT;
-    IfNode(ParseNode* cond, ParseNode* thenT, ParseNode* elseT) : cond(cond), thenT(thenT), elseT(elseT) {}
+    IfNode(int lineno, ParseNode* cond, ParseNode* thenT, ParseNode* elseT) : 
+        lineno(lineno), cond(cond), thenT(thenT), elseT(elseT) {}
     
     virtual void print()
     {
@@ -134,9 +142,10 @@ struct IfNode : ParseNode
 
 struct WhileNode : ParseNode
 {
+    int lineno;
     ParseNode* cond;
     ParseNode* body;
-    WhileNode(ParseNode* cond, ParseNode* body) : cond(cond), body(body) {}
+    WhileNode(int lineno, ParseNode* cond, ParseNode* body) : lineno(lineno), cond(cond), body(body) {}
     
     virtual void print()
     {
@@ -149,10 +158,11 @@ struct WhileNode : ParseNode
 
 struct BinOpNode : ParseNode
 {
+    int lineno;
     ParseNode* lhs;
     std::string op;
     ParseNode* rhs;
-    BinOpNode(ParseNode* lhs, std::string op, ParseNode* rhs) : lhs(lhs), op(op), rhs(rhs) {}
+    BinOpNode(int lineno, ParseNode* lhs, std::string op, ParseNode* rhs) : lineno(lineno), lhs(lhs), op(op), rhs(rhs) {}
 
     virtual void print()
     {
@@ -164,9 +174,10 @@ struct BinOpNode : ParseNode
 
 struct UnaryOpNode : ParseNode
 {
+    int lineno;
     std::string op;
     ParseNode* inner;
-    UnaryOpNode(std::string op, ParseNode* inner) : op(op), inner(inner) {}
+    UnaryOpNode(int lineno, std::string op, ParseNode* inner) : lineno(lineno), op(op), inner(inner) {}
 
     virtual void print()
     {
@@ -178,9 +189,10 @@ struct UnaryOpNode : ParseNode
 
 struct MemberAccessNode : ParseNode
 {
+    int lineno;
     ParseNode* obj;
     std::string member;
-    MemberAccessNode(ParseNode* obj, std::string member) : obj(obj), member(member) {}
+    MemberAccessNode(int lineno, ParseNode* obj, std::string member) : lineno(lineno), obj(obj), member(member) {}
 
     virtual void print()
     {
@@ -224,8 +236,9 @@ struct StringNode : ParseNode
 
 struct VariableNode : ParseNode
 {
+    int lineno;
     std::string var;
-    VariableNode(std::string var) : var(var) {}
+    VariableNode(int lineno, std::string var) : lineno(lineno), var(var) {}
 
     virtual void print()
     {
@@ -235,9 +248,10 @@ struct VariableNode : ParseNode
 
 struct CallNode : ParseNode
 {
+    int lineno;
     std::string fname;
     std::vector<ParseNode*> args;
-    CallNode(std::string fname, std::vector<ParseNode*> args) : fname(fname), args(args) {}
+    CallNode(int lineno, std::string fname, std::vector<ParseNode*> args) : lineno(lineno), fname(fname), args(args) {}
 
     void print()
     {

@@ -1,16 +1,19 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include "Visitor.h"
-#include "args.hxx"
+#include "args.hpp"
+#include "Errors.h"
+#include <csignal>
 #include <fstream>
 
-int main(int argc, char** argv) {
+void run(int argc, char** argv) {
     args::ArgumentParser argParser("YLang compiler");
     args::Positional<std::string> source(argParser, "source", "Source file path", args::Options::Required);
     args::Group outputFormatsGroup(argParser, "Output file type formats", args::Group::Validators::AtMostOne);
     args::Flag outputFormatIR(outputFormatsGroup, "output IR", "Emit LLVM Immediate Representation", {"ir"});
     args::Flag outputFormatObj(outputFormatsGroup, "output object", "Emit native object file", {"obj"});
     args::Flag outputFormatRun(outputFormatsGroup, "run immediately", "Run code immediately after compilation and linking", {'r'});
+    args::HelpFlag help(argParser, "show the help", "Print the help message", {'h', "help"});
     args::Flag noOptimizations(argParser, "no optimizations", "Disable code optimizations", {"O0"});
     args::ValueFlag<std::string> output(argParser, "output", "Output file path", {'o'});
 
@@ -21,26 +24,25 @@ int main(int argc, char** argv) {
     catch (args::Help)
     {
         std::cout << argParser;
-        return 0;
+        return;
     }
     catch (args::ParseError e)
     {
         std::cerr << e.what() << std::endl;
         std::cerr << argParser;
-        return 1;
+        return;
     }
     catch (args::ValidationError e)
     {
         std::cerr << e.what() << std::endl;
         std::cerr << argParser;
-        return 1;
+        return;
     }
 
     std::ifstream stream;
     stream.open(args::get(source));
     if (stream.fail() || !stream.is_open()) {
-        std::cout << "Error while opening the source file!" << std::endl;
-        return 1;
+        err::throwFatal("Could not open the source file");
     }
     
     Lexer lexer(stream);
@@ -82,6 +84,23 @@ int main(int argc, char** argv) {
             system("rm test/bin");
         }
     }
-    
-    return 0;
+}
+
+int main(int argc, char** argv) {
+    // when a non-fatal error appears
+    // it can cause the program
+    // to segfault later in execution
+    // this silences segmentation fault if an error was previously thrown
+    // comment out for debugging purposes
+    signal(SIGSEGV, err_signal_handle);
+
+    // this is used for proper crashing
+    // when an error appears
+    // the exception propagation guarantees RAII
+    try {
+        run(argc, argv);
+        return 0;
+    } catch (...) { 
+        return 1;
+    }
 }

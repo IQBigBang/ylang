@@ -8,6 +8,11 @@ Bugfixes:
 - ~~Numbers not correctly passed into IR~~
 - ~~Comments not working~~
 - ~~Optimizations segfaulting~~
+- Correct decimal separator handling - Lexer.cpp:137
+
+Code improvements:
+- 
+- 
 
 Enhancements:
 - ~~Improve function definition grammar~~
@@ -16,27 +21,29 @@ Enhancements:
 - ~~If statement~~
 - ~~Make language more functional (__removed goal__)~~
 - ~~Switch statement~~
-- Multi-condition cases (in switch)
-- Better 'if' statements
+- Multi-condition `case`s (in `switch`)
+- Better `if` statements
 - ~~Structs~~
 - Syntax simplification
 - External and unmangled functions
-- Better error reporting
+- More unary operations (`!`, ...) - Lexer.cpp:99
+- ~~Better error reporting~~
 - ~~Strings~~
-- Line counting (for better errors)
+- ~~Line counting (for better errors)~~
 - Improve keyword and special symbol handling in the lexer
 - ~~Do expression (multiple statements wrapper)~~
 - Make the language more "imperative" (partly finished)
 - Add a `pass` statement (to allow for empty blocks)
 - ~~Syntax changes~~
+- Update to non-legacy pass manager - Visitor.cpp:170
 
 New features:
 - JIT compiler
 - ~~Optimizer~~
 - ~~While statement~~
-- For statement
+- `for` statement
 - Type casting
-- Match statement (simple pattern matching)
+- `match` statement (simple pattern matching)
 - Add tests!
 - __Documentation__
 - Sum types

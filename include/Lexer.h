@@ -17,16 +17,20 @@ struct Lexeme
     std::string LVal;
 };
 
+std::string LTypeToStr(int ltype);
+
 std::ostream& operator<<(std::ostream& os, Lexeme& l);
 
 class Lexer
 {
 public:
-    Lexer(std::istream& inp) : inp(inp) {}
+    Lexer(std::istream& inp) : inp(inp), line(1) {}
     Lexeme* next();
+    int getLine();
 
 private:
     std::istream& inp;
+    int line;
 };
 
 #endif // LEXER_H_

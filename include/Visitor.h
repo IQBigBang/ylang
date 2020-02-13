@@ -75,13 +75,8 @@ public:
     Value* visitVariable(VariableNode* context);
     Value* visitCall(CallNode* context);
 
-    Type* getTypeFromStr(std::string str);
-
-    Value* LogErrorV(const char* str)
-    {
-        std::cerr << str << std::endl;
-        return nullptr;
-    };
+    // line number for debugging purposes
+    Type* getTypeFromStr(int lineno, std::string str);
 
     void print(std::string outFile)
     {

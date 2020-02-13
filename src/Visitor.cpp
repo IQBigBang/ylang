@@ -1,4 +1,5 @@
 #include "Visitor.h"
+#include "Errors.h"
 #include <memory>
 #include <typeinfo>
 #include <cctype>
@@ -37,10 +38,12 @@ Value *Visitor::visit(ParseNode *n)
         return visitVariable(dynamic_cast<VariableNode *>(n));
     if (dynamic_cast<CallNode*>(n))
         return visitCall(dynamic_cast<CallNode *>(n));
-    std::cerr << "Invalid node type: " << typeid(n).name() << std::endl;
+    err::throwFatal("Internal error", 
+                    "Invalid parse node type: " + std::string(typeid(n).name()));
+    return nullptr;
 }
 
-Type* Visitor::getTypeFromStr(std::string str)
+Type* Visitor::getTypeFromStr(int lineno, std::string str)
 {
     if (str == "Num")
         return Type::getDoubleTy(TheContext);
@@ -51,7 +54,7 @@ Type* Visitor::getTypeFromStr(std::string str)
     else if (TheModule->getTypeByName(str))
         return TheModule->getTypeByName(str)->getPointerTo();
     else {
-        LogErrorV(("Invalid type " + str).c_str()); 
+        err::throwNonfatal("Unrecognized type", "Found unrecognized type `" + str + "`", lineno);
         return Type::getVoidTy(TheContext);
     }
 }
@@ -161,8 +164,8 @@ void Visitor::Emit(std::string filename)
     raw_fd_ostream dest(filename, EC, sys::fs::OpenFlags::F_None);
     if (EC)
     {
-        std::cerr << "Could not open output file: " << EC.message();
-        exit(1);
+        err::throwFatal("Could not open output file",
+            EC.message());
     }
     // TODO: Update to non-legacy
     legacy::PassManager pass;
@@ -170,8 +173,8 @@ void Visitor::Emit(std::string filename)
 
     if (Machine->addPassesToEmitFile(pass, dest, nullptr, FileType))
     {
-        std::cerr << "Error emitting object file" << std::endl;
-        exit(1);
+        err::throwFatal("Could not finish compilation",
+            "Error emitting object file");
     }
 
     pass.run(*TheModule);
@@ -186,7 +189,7 @@ std::string Visitor::mangleFuncName(std::string fname, std::vector<Type*> args)
     for (Type* at : args)
     {
         if (!at)
-            LogErrorV(("Invalid type " + fname).c_str());
+            err::throwNonfatal("Internal error", "Unrecognized function argument type `" + fname + "`");
         if (at->isDoubleTy())
             mangled += "_n";
         else if (at->isIntegerTy(1))
@@ -197,8 +200,7 @@ std::string Visitor::mangleFuncName(std::string fname, std::vector<Type*> args)
             mangled += at->getContainedType(0)->getStructName();
         }
         else
-            LogErrorV(("Invalid type " + fname).c_str());
-        
+            err::throwNonfatal("Internal error", "Unrecognized function argument type `" + fname + "`");        
     }
     return mangled;
 }
@@ -207,10 +209,10 @@ Value* Visitor::visitExternFuncDef(ExternFuncDefNode *context)
 {  
     std::vector<Type*> ArgTypes;
     for (auto a : context->args)
-        ArgTypes.push_back(getTypeFromStr(a.first));
+        ArgTypes.push_back(getTypeFromStr(context->lineno, a.first));
 
     FunctionType* FT
-        = FunctionType::get(getTypeFromStr(context->rettype), ArgTypes, false);
+        = FunctionType::get(getTypeFromStr(context->lineno, context->rettype), ArgTypes, false);
     
     Function* F = 
         Function::Create(FT, Function::ExternalLinkage, mangleFuncName(context->fname, ArgTypes), TheModule.get());
@@ -222,13 +224,16 @@ Value* Visitor::visitExternFuncDef(ExternFuncDefNode *context)
 Value* Visitor::visitFuncDef(FuncDefNode *context)
 {
     if (std::isupper(context->fname[0]))
-        return LogErrorV("Function names must start lowercase.");
+    {
+        err::throwNonfatal("Function names must start lowercase", "", context->lineno);
+        return nullptr;
+    }
     std::vector<Type*> ArgTypes;
     for (auto a : context->args)
-        ArgTypes.push_back(getTypeFromStr(a.first));
+        ArgTypes.push_back(getTypeFromStr(context->lineno, a.first));
 
     FunctionType* FT
-        = FunctionType::get(getTypeFromStr(context->rettype), ArgTypes, false);
+        = FunctionType::get(getTypeFromStr(context->lineno, context->rettype), ArgTypes, false);
         
     Function* F = 
         Function::Create(FT, Function::ExternalLinkage, mangleFuncName(context->fname, ArgTypes), TheModule.get());
@@ -254,18 +259,24 @@ Value* Visitor::visitFuncDef(FuncDefNode *context)
     if (F->getReturnType()->isVoidTy())
     {
         if (v && !v->getType()->isVoidTy())
-            return LogErrorV("Non-matching type returned");
+        {
+            err::throwNonfatal("Non-matching type returned", "", context->lineno);
+            return nullptr;
+        }
         Builder.CreateRetVoid();
     } else
     {
         if (v->getType() != F->getReturnType())
-            return LogErrorV("Non-matching type returned");
+        {
+            err::throwNonfatal("Non-matching type returned in function", "", context->lineno); // TODO: correct line
+            return nullptr;
+        }
         Builder.CreateRet(v);
     }
 
     if (verifyFunction(*F, &errs()))
     {
-        return LogErrorV("Error generating function body");
+        err::throwNonfatal("Error generating function body in function", "", context->lineno); // TODO: correct line
     }
     return nullptr;
 }
@@ -273,16 +284,22 @@ Value* Visitor::visitFuncDef(FuncDefNode *context)
 Value* Visitor::visitTypeDef(TypeDefNode* context)
 {
     if (std::islower(context->name[0]))
-        return LogErrorV("Type names must start uppercase.");
+    {
+        err::throwNonfatal("Type names must start uppercase", "", context->lineno);
+        return nullptr;
+    }
     if (context->name == "Num" || context->name == "Bool" || context->name == "Void" ||
         TheModule->getTypeByName(context->name))
-        return LogErrorV("Duplicite structure name");
+    {
+        err::throwNonfatal("Duplicite structure name", "", context->lineno);
+        return nullptr;
+    }
     std::vector<Type*> memberTypes;
     std::vector<std::string> memberNames;
     for (auto M : context->members)
     {
         memberNames.push_back(M.second);
-        memberTypes.push_back(getTypeFromStr(M.first));
+        memberTypes.push_back(getTypeFromStr(context->lineno, M.first));
     }
     auto newS = StructType::create(TheContext, memberTypes, context->name, false);
     StructMembers[context->name] = memberNames;
@@ -321,7 +338,10 @@ Value* Visitor::visitTypeDef(TypeDefNode* context)
 Value* Visitor::visitBlock(BlockNode* context)
 {
     if (context->exprs.size() == 0)
-        return LogErrorV("A do statement must contain at least one expression");
+    {
+        err::throwFatal("Do statement must contain at least one expression", "", context->lineno);
+        return nullptr;
+    }
     Value* V;
     for (auto e : context->exprs)
         V = visit(e);
@@ -341,7 +361,10 @@ Value* Visitor::visitSwitch(SwitchNode *context)
         Builder.SetInsertPoint(currCase); // insert to main block
         Value* cond = visit(c.first); // emit the condition (rhs)
         if (!lhs->getType()->isDoubleTy() || !cond->getType()->isDoubleTy())
-            return LogErrorV("Invalid types");
+        {
+            std::cerr << "Invalid switch types"; // TODO (with operator overloading)
+            return nullptr;
+        }
         Value* cmp = Builder.CreateFCmpUEQ(lhs, cond);
         auto Bcase = BasicBlock::Create(TheContext, "case", Builder.GetInsertBlock()->getParent()); // make 'case' block
         auto Bncase = BasicBlock::Create(TheContext, "ncase", Builder.GetInsertBlock()->getParent()); // make 'not-case' block
@@ -370,7 +393,10 @@ Value* Visitor::visitIf(IfNode *context)
 {
     Value* cond = visit(context->cond);
     if (!cond->getType()->isIntegerTy(1))
-        return LogErrorV("If statement requires a boolean");
+    {
+        err::throwNonfatal("Type mismatch", "If condition must be of type boolean", context->lineno);
+        return nullptr;
+    }
     
     Function* currF = Builder.GetInsertBlock()->getParent();
     
@@ -392,10 +418,16 @@ Value* Visitor::visitIf(IfNode *context)
     elseBlock = Builder.GetInsertBlock();
 
     if (thenVal->getType() != elseVal->getType())
-        return LogErrorV("If expression branches must return the same type");
+    {
+        err::throwNonfatal("Type mismatch", "If branches must return the same type", context->lineno);
+        return nullptr;
+    }
 
     currF->getBasicBlockList().push_back(endBlock);
     Builder.SetInsertPoint(endBlock);
+
+    if (thenVal->getType()->isVoidTy()) return (Value*)nullptr; // if the return type is void, phi would be invalid
+
     PHINode* phi = Builder.CreatePHI(thenVal->getType(), 2);
     phi->addIncoming(thenVal, thenBlock);
     phi->addIncoming(elseVal, elseBlock);
@@ -414,7 +446,10 @@ Value* Visitor::visitWhile(WhileNode* context) {
     Builder.SetInsertPoint(cond);
     Value* compiled_cond = visit(context->cond);
     if (!compiled_cond->getType()->isIntegerTy(1))
-        return LogErrorV("While statement condition must be of type boolean");
+    {
+        err::throwNonfatal("Type mismatch", "While condition must be of type boolean", context->lineno);
+        return nullptr;
+    }
     Builder.CreateCondBr(compiled_cond, body, exit); // the main loop - if cond = true, next loop else exit
 
     currF->getBasicBlockList().push_back(body); // now emit body
@@ -453,15 +488,16 @@ Value *Visitor::visitCall(CallNode *context)
     {
         Args.push_back(visit(a));
         ArgTypes.push_back(Args.back()->getType());
-        if (!Args.back())
-            return LogErrorV("Invalid argument");
     }
 
     // We don't need to check types, the mangling algorithm does that
     Function *F = TheModule->getFunction(mangleFuncName(context->fname, ArgTypes));
     if (!F)
-        return LogErrorV("Undefined function or constructor. Check name spelling and correct argument types");
-
+    {
+        // TODO print function prototype
+        err::throwNonfatal("Undefined function or constructor", "", context->lineno);
+        return nullptr;
+    }
     return (Value *)Builder.CreateCall(F, Args);
 }
 
@@ -480,11 +516,17 @@ Value* Visitor::visitMemberAccess(MemberAccessNode *context) {
     Value* obj = visit(context->obj);
     if (!obj->getType()->isPointerTy() || !obj->getType()->getContainedType(0)->isStructTy()
                                 || obj->getType()->getContainedType(0)->getStructName() == "Str")
-        return LogErrorV("Primitive types don't have members!");
+    {
+        err::throwNonfatal("Type mismatch", "Primitive types don't have members.", context->lineno);
+        return nullptr;
+    }
     auto& members = StructMembers[obj->getType()->getContainedType(0)->getStructName()];
     auto it = std::find(members.begin(), members.end(), context->member);
     if (it == members.end())
-        return LogErrorV("Undefined member");
+    {
+        err::throwNonfatal("Undefined member", "", context->lineno);
+        return nullptr;
+    }
     int index = it - members.begin();
     auto member_ptr = GetElementPtrInst::CreateInBounds(obj, 
         {getInt32Const(0), getInt32Const(index)}, 
@@ -495,15 +537,13 @@ Value* Visitor::visitMemberAccess(MemberAccessNode *context) {
 Value* Visitor::visitUnOp(UnaryOpNode* context)
 {
     Value* inner = visit(context->inner);
-    if (!inner)
-        return LogErrorV("Invalid operand");
     if (inner->getType()->isDoubleTy())
     {
         if (context->op == "-")
             return (Value*)Builder.CreateFNeg(inner);
-        return LogErrorV("Invalid unary operand");
     }
-    return LogErrorV("Invalid unary operation");
+    err::throwNonfatal("Invalid unary operation", "", context->lineno);
+    return nullptr;
 }
 
 Value* Visitor::visitBinOp(BinOpNode *context)
@@ -512,8 +552,6 @@ Value* Visitor::visitBinOp(BinOpNode *context)
     auto leftTy = left->getType();
     Value* right = visit(context->rhs);
     auto rightTy = right->getType();
-    if (!left || !right)
-        return LogErrorV("Invalid infix operand");
     
     std::string op = context->op;
 
@@ -539,16 +577,12 @@ Value* Visitor::visitBinOp(BinOpNode *context)
             return (Value*)Builder.CreateFCmpUEQ(left, right);
         else if (op == "!=")
             return (Value*)Builder.CreateFCmpUNE(left, right);
-        
-        return LogErrorV("Invalid infix operation for types num and num");
     } else if (leftTy->isIntegerTy(1) && rightTy->isIntegerTy(1))
     {
         if (op == "==")
             return (Value*)Builder.CreateICmpEQ(left, right);
         else if (op == "!=")
             return (Value*)Builder.CreateICmpNE(left, right);
-        
-        return LogErrorV("Invalid infix operation for types bool and bool");
     } else if (leftTy->isPointerTy() && leftTy->getContainedType(0)->isStructTy()
             && rightTy->isPointerTy() && rightTy->getContainedType(0)->isStructTy())
     {
@@ -560,7 +594,8 @@ Value* Visitor::visitBinOp(BinOpNode *context)
         }
     }
 
-    return LogErrorV("Invalid infix operation operands");
+    err::throwNonfatal("Invalid binary operation", "", context->lineno);
+    return nullptr;
 }
 
 Value* Visitor::visitString(StringNode *context) {
@@ -573,7 +608,10 @@ Value* Visitor::visitString(StringNode *context) {
 
 Value* Visitor::visitVariable(VariableNode *context) {
     if (NamedValues.count(context->var) == 0)
-        return LogErrorV("Undefined variable");
+    {
+        err::throwNonfatal("Undefined variable `" + context->var + "`", "", context->lineno);
+        return nullptr;
+    }
 
     return (Value*)Builder.CreateLoad(NamedValues[context->var], context->var);
 }
