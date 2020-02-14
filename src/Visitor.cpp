@@ -225,11 +225,6 @@ Value* Visitor::visitExternFuncDef(ExternFuncDefNode *context)
 
 Value* Visitor::visitFuncDef(FuncDefNode *context)
 {
-    if (std::isupper(context->fname[0]))
-    {
-        err::throwNonfatal("Function names must start lowercase", "", context->lineno);
-        return nullptr;
-    }
     std::vector<Type*> ArgTypes;
     for (auto a : context->args)
         ArgTypes.push_back(getTypeFromStr(context->lineno, a.first));
@@ -285,11 +280,6 @@ Value* Visitor::visitFuncDef(FuncDefNode *context)
 
 Value* Visitor::visitTypeDef(TypeDefNode* context)
 {
-    if (std::islower(context->name[0]))
-    {
-        err::throwNonfatal("Type names must start uppercase", "", context->lineno);
-        return nullptr;
-    }
     if (context->name == "Num" || context->name == "Bool" || context->name == "Void" ||
         TheModule->getTypeByName(context->name))
     {
