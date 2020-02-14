@@ -15,6 +15,8 @@ struct Lexeme
         LEX_EOF
     } LType;
     std::string LVal;
+
+    ~Lexeme() {} // don't delete LVal
 };
 
 std::string LTypeToStr(int ltype);

@@ -97,7 +97,7 @@ Visitor::Visitor() : Builder(TheContext),
 
     TargetOptions opt;
     auto RM = Optional<Reloc::Model>();
-    Machine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
+    Machine.reset(Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM));
 
     TheModule->setDataLayout(Machine->createDataLayout());
     TheModule->setTargetTriple(TargetTriple);
@@ -339,10 +339,9 @@ Value* Visitor::visitTypeDef(TypeDefNode* context)
 
 Value* Visitor::visitBlock(BlockNode* context)
 {
-    if (context->exprs.size() == 0)
+    if (context->exprs.size() == 0)  // empty block
     {
-        err::throwFatal("Do statement must contain at least one expression", "", context->lineno);
-        return nullptr;
+        return (Value*)nullptr; // Void
     }
     Value* V;
     for (auto e : context->exprs)

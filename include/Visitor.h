@@ -51,6 +51,11 @@ class  Visitor {
 public:
 
     Visitor();
+
+    ~Visitor() {
+        TheModule.release();
+        Machine.release();
+    }
     
     void optimize(bool doFullOptimizations);
 
@@ -103,5 +108,5 @@ private:
     std::unique_ptr<Module> TheModule;
     std::map<std::string, AllocaInst*> NamedValues;
     std::map<std::string, std::vector<std::string>> StructMembers;
-    TargetMachine* Machine;
+    std::unique_ptr<TargetMachine> Machine;
 };

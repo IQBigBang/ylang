@@ -76,6 +76,10 @@ ParseNode* Parser::parse_block()
     {
         eat(); // {
         std::vector<ParseNode*> exprs;
+        if (peekKW("}")) { // empty block
+            eat();
+            return new BlockNode(l.getLine(), exprs);
+        }
         exprs.push_back(parse_expr());
         while (peekKW(";"))
         {
@@ -307,7 +311,7 @@ bool Parser::peekKW(std::string kw)
 std::string Parser::eat()
 {
     std::string x = this->cur_lex->LVal;
-    //delete this->cur_lex;
+    delete this->cur_lex;
     this->cur_lex = this->l.next();
     return x;
 }

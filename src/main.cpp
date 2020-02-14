@@ -12,7 +12,7 @@ void run(int argc, char** argv) {
     args::Group outputFormatsGroup(argParser, "Output file type formats", args::Group::Validators::AtMostOne);
     args::Flag outputFormatIR(outputFormatsGroup, "output IR", "Emit LLVM Immediate Representation", {"ir"});
     args::Flag outputFormatObj(outputFormatsGroup, "output object", "Emit native object file", {"obj"});
-    args::Flag outputFormatRun(outputFormatsGroup, "run immediately", "Run code immediately after compilation and linking", {'r'});
+    args::Flag outputFormatRun(outputFormatsGroup, "run immediately", "Run code immediately after compilation and linking (keeps the compiled executable)", {'r'});
     args::HelpFlag help(argParser, "show the help", "Print the help message", {'h', "help"});
     args::Flag noOptimizations(argParser, "no optimizations", "Disable code optimizations", {"O0"});
     args::ValueFlag<std::string> output(argParser, "output", "Output file path", {'o'});
@@ -76,12 +76,11 @@ void run(int argc, char** argv) {
         visitor.Emit(outfile);
     else {
         visitor.Emit("tmp.o");
-        system(("clang-9 tmp.o stdlib/std.o stdlib/gc.o -o " + outfile).c_str());
+        system(("clang -O2 -flto=thin tmp.o stdlib/std.o stdlib/gc.o -o " + outfile).c_str());
         system("rm tmp.o");
         if (outputFormatRun)
         {
-            system("./test/bin");
-            system("rm test/bin");
+            system(("./" + outfile).c_str());
         }
     }
 }

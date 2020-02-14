@@ -33,7 +33,7 @@ Enhancements:
 - Improve keyword and special symbol handling in the lexer
 - ~~Do expression (multiple statements wrapper)~~
 - Make the language more "imperative" (partly finished)
-- Add a `pass` statement (to allow for empty blocks)
+- ~~Add a `pass` statement (to allow for empty blocks) - added empty blocks instead~~
 - ~~Syntax changes~~
 - Update to non-legacy pass manager - Visitor.cpp:170
 - `include` syntax (for multiple files)
