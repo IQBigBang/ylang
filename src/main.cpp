@@ -44,6 +44,7 @@ void run(int argc, char** argv) {
     if (stream.fail() || !stream.is_open()) {
         err::throwFatal("Could not open the source file");
     }
+    err::fileName = args::get(source); // set the current filename
     
     Lexer lexer(stream);
     Parser parser(lexer);
@@ -55,14 +56,14 @@ void run(int argc, char** argv) {
     Visitor visitor;
 
     std::string outfile;
-    if (outputFormatRun) outfile = "test/bin";
+    if (outputFormatRun) outfile = "bin";
     else if (output) outfile = args::get(output); 
     else {
         if (outputFormatIR)
-            outfile = "test/bin.ll";
+            outfile = "bin.ll";
         else if (outputFormatObj)
-            outfile = "test/bin.o";
-        else outfile = "test/bin";
+            outfile = "bin.o";
+        else outfile = "bin";
     }
     
     for (auto& pn : n)
@@ -76,7 +77,13 @@ void run(int argc, char** argv) {
         visitor.Emit(outfile);
     else {
         visitor.Emit("tmp.o");
-        system(("clang -O2 -flto=thin tmp.o stdlib/std.o stdlib/gc.o -o " + outfile).c_str());
+        std::string cmd = "clang "; // use clang
+        cmd.append("-O2 -flto=thin "); // optimizations (LTO is very important!)
+        cmd.append("tmp.o "); // emitted temporary object file
+        cmd.append(STDLIBDIR "std.o "); // link standard library
+        cmd.append(STDLIBDIR "gc.o "); // link garbage collector
+        cmd.append("-o " + outfile); // output file
+        system(cmd.c_str());
         system("rm tmp.o");
         if (outputFormatRun)
         {

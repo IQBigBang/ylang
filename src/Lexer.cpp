@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <fstream>
 #include "Lexer.h"
 #include "Errors.h"
 
@@ -179,6 +180,8 @@ Lexeme *Lexer::next()
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "false"};
         if (id == "while")
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "while"};
+        if (id == "include")
+            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "include"};
         return new Lexeme{.LType = Lexeme::LEX_ID, .LVal = id};
     }
 

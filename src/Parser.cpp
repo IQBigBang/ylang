@@ -6,7 +6,12 @@ std::vector<ParseNode*> Parser::parse()
     std::vector<ParseNode*> code;
     while (!peek(Lexeme::LEX_EOF))
     {
-        if (peekKW("type"))
+        if (peekKW("include")) {
+            eat(); // include
+            std::string module_name = expect(Lexeme::LEX_ID);
+
+            code.push_back(new IncludeNode(l.getLine(), module_name));
+        } else if (peekKW("type"))
         {
             eat(); // type
             std::string type_name = expect(Lexeme::LEX_ID);

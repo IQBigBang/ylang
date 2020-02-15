@@ -40,6 +40,14 @@
 
 #include "Tree.h"
 
+// The STDLIBDIR macro should be passed as an argument (see the Makefile)
+// It ensures that the location of the standard library is always known
+// no matter where you call the compiler
+#ifndef STDLIBDIR
+#error Standard Library Directory is not defined!
+#define STDLIBDIR "" // this is just to soothe the IDE and stop it from reporting errors
+#endif
+
 using namespace llvm;
 
 
@@ -66,6 +74,7 @@ public:
    /**
    * Visit parse trees produced by Parser.
    */
+    Value* visitInclude(IncludeNode* context);
     Value* visitTypeDef(TypeDefNode* context);
     Value* visitFuncDef(FuncDefNode* context);
     Value* visitExternFuncDef(ExternFuncDefNode* context);
@@ -108,5 +117,6 @@ private:
     std::unique_ptr<Module> TheModule;
     std::map<std::string, AllocaInst*> NamedValues;
     std::map<std::string, std::vector<std::string>> StructMembers;
+    std::vector<std::string> IncludedModules;
     std::unique_ptr<TargetMachine> Machine;
 };

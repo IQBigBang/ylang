@@ -16,6 +16,8 @@ LIBS =
 
 PREFIXED_OBJECTS = $(addprefix $(OBJDIR),$(OBJECTS))
 
+CPPFLAGS := $(CPPFLAGS) -DSTDLIBDIR="\"$(CURDIR)/stdlib/\""
+
 all: $(OUTFILE)
 
 $(OBJDIR)%.o: $(SRCDIR)%.cpp

@@ -36,7 +36,8 @@ Enhancements:
 - ~~Add a `pass` statement (to allow for empty blocks) - added empty blocks instead~~
 - ~~Syntax changes~~
 - Update to non-legacy pass manager - Visitor.cpp:170
-- `include` syntax (for multiple files)
+- ~~`include` syntax (for multiple files)~~
+- Add more system types (int, pointer)
 
 
 
@@ -52,7 +53,7 @@ New features:
 - __Documentation__
 - Sum types
 - ~~Pointers (_removed goal_)~~
-- Full std library
+- __Extend std library__
 - Type inference
 - Operator overloading (and perhaps more operators)
 - ~~CLI~~

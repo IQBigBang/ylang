@@ -1,11 +1,16 @@
 #include "Visitor.h"
+#include "Lexer.h"
+#include "Parser.h"
 #include "Errors.h"
 #include <memory>
 #include <typeinfo>
 #include <cctype>
+#include <fstream>
 
 Value *Visitor::visit(ParseNode *n)
 {
+    if (dynamic_cast<IncludeNode*>(n))
+        return visitInclude(dynamic_cast<IncludeNode*>(n));
     if (dynamic_cast<TypeDefNode*>(n))
         return visitTypeDef(dynamic_cast<TypeDefNode*>(n));
     if (dynamic_cast<FuncDefNode*>(n))
@@ -106,12 +111,6 @@ Visitor::Visitor() : Builder(TheContext),
         
     auto Str = StructType::create(TheContext, {Type::getInt8PtrTy(TheContext), Type::getInt32Ty(TheContext)}, "Str");
 
-    // Void print(Num n)
-    addSTLFunction(Type::getVoidTy(TheContext), {Type::getDoubleTy(TheContext)}, "_Wprint_n");
-    // Void print(Str s)
-    addSTLFunction(Type::getVoidTy(TheContext),
-        { Str->getPointerTo() }, "_Wprint_Str");
-    
     // internal STL
 
     // void* alloc(int size)
@@ -205,6 +204,43 @@ std::string Visitor::mangleFuncName(std::string fname, std::vector<Type*> args)
             err::throwNonfatal("Internal error", "Unrecognized function argument type `" + fname + "`");        
     }
     return mangled;
+}
+
+Value* Visitor::visitInclude(IncludeNode* context)
+{
+    if (std::find(IncludedModules.begin(), IncludedModules.end(), context->modulename) != IncludedModules.end())
+    {
+        // the module was already included, so ignore this statement
+        return nullptr;   
+    }
+    std::string filename = context->modulename + ".yy";
+    // first initialize the lexer for the included file
+    std::ifstream included; 
+    // search in current directory, subdirectory 'src' and the standard library directory
+    if (std::ifstream(filename))
+        filename = filename; // basically nop
+    else if (std::ifstream("src/" + filename))
+        filename = "src/" + filename;
+    else if (std::ifstream(STDLIBDIR + filename))
+        filename = STDLIBDIR + filename;
+    else {
+        err::throwNonfatal("Invalid include", "Cannot find to-be-included file `" + filename + "`", context->lineno);
+        return nullptr;
+    }
+    // first, save the current file name and update it (for useful error reports)
+    std::string currFileName = err::fileName;
+    err::fileName = filename;
+    IncludedModules.push_back(context->modulename); // add to the list of already included modules
+    // now initialize lexer and parser
+    included.open(filename);
+    Lexer included_lexer(included);
+    Parser included_parser(included_lexer);
+    auto nodes = included_parser.parse(); // parse the included file
+    for (auto& n : nodes)
+        this->visit(n); // and compile it with this visitor
+
+    err::fileName = currFileName; // restore the filename
+    return nullptr;
 }
 
 Value* Visitor::visitExternFuncDef(ExternFuncDefNode *context)

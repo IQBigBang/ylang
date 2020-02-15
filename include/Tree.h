@@ -11,6 +11,17 @@ struct ParseNode
     virtual void print() = 0;
 };
 
+struct IncludeNode : ParseNode
+{
+    int lineno;
+    std::string modulename;
+    IncludeNode(int lineno, std::string modulename) : lineno(lineno), modulename(modulename) {}
+    virtual void print()
+    {
+        std::cerr << "Include{module=" << modulename << "}";
+    }
+};
+
 struct TypeDefNode : ParseNode
 {
     int lineno;

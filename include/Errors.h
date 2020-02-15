@@ -6,6 +6,7 @@
 void err_signal_handle(int signo);
 
 namespace err {
+    extern std::string fileName; // used for error reporting
     // throw, but don't terminate unless too many exceptions have already been thrown
     void throwNonfatal(std::string error, std::string description = "", int line = -1);
     // throw and terminate

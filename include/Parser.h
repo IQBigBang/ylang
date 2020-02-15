@@ -17,7 +17,8 @@ public:
 
     code := {defin} EOF;
 
-    defin :=  'type' typename=ID '{' { membertype=ID membername=ID ';' } '}'
+    defin :=  'include' filename=ID
+            | 'type' typename=ID '{' { membertype=ID membername=ID ';' } '}'
             | 'def' 'external' rettype=ID fname=ID '(' {type=ID arg=ID ',' } ')' # args split by colons
             | 'def' rettype=ID fname=ID '(' {type=ID arg=ID ',' } ')' body=block # args split by colons
     */
