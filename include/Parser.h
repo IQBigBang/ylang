@@ -19,8 +19,7 @@ public:
 
     defin :=  'include' filename=ID
             | 'type' typename=ID '{' { membertype=ID membername=ID ';' } '}'
-            | 'def' 'external' rettype=ID fname=ID '(' {type=ID arg=ID ',' } ')' # args split by colons
-            | 'def' rettype=ID fname=ID '(' {type=ID arg=ID ',' } ')' body=block # args split by colons
+            | 'fn' attributes rettype=ID fname=ID '(' {type=ID arg=ID ',' } ')' body=block # args split by colons
     */
     std::vector<ParseNode*> parse();
 

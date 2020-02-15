@@ -154,10 +154,8 @@ Lexeme *Lexer::next()
         while (std::isalnum(c = inp.get()) || c == '_')
             id.push_back(c);
         inp.unget();
-        if (id == "def")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "def"};
-        if (id == "external")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "external"};
+        if (id == "fn")
+            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "fn"};
         if (id == "type")
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "type"};
         if (id == "if")

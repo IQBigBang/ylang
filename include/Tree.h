@@ -38,15 +38,22 @@ struct TypeDefNode : ParseNode
     }
 };
 
+struct FuncAttributes
+{
+    bool External : 1;
+    bool Unmangled : 1; // more to be added soon
+};
+
 struct FuncDefNode : ParseNode
 {
     int lineno;
+    FuncAttributes attrs;
     std::string rettype;
     std::string fname;
     std::vector<std::pair<std::string, std::string>> args;
     ParseNode* body;
-    FuncDefNode(int lineno, std::string rettype, std::string fname, std::vector<std::pair<std::string, std::string>> args, ParseNode* body)
-        : lineno(lineno), rettype(rettype), fname(fname), args(args), body(body) {}
+    FuncDefNode(int lineno, FuncAttributes attrs, std::string rettype, std::string fname, std::vector<std::pair<std::string, std::string>> args, ParseNode* body)
+        : lineno(lineno), attrs(attrs), rettype(rettype), fname(fname), args(args), body(body) {}
     virtual void print()
     {
         std::cerr << "FuncDef{ret=" << rettype << ", name=" << fname << ", args=[";
@@ -56,24 +63,6 @@ struct FuncDefNode : ParseNode
         body->print();
         std::cerr << "}";
     }
-};
-
-struct ExternFuncDefNode : ParseNode
-{
-    int lineno;
-    std::string rettype;
-    std::string fname;
-    std::vector<std::pair<std::string, std::string>> args;
-    ExternFuncDefNode(int lineno, std::string rettype, std::string fname, std::vector<std::pair<std::string, std::string>> args)
-        : lineno(lineno), rettype(rettype), fname(fname), args(args) {}  
-
-    virtual void print()
-    {
-        std::cerr << "ExternFuncDef{ret=" << rettype << ", name=" << fname << ", args=[";
-        for (auto i = args.begin(); i != args.end(); ++i)
-            std::cerr << "(" << i->first << "," << i->second << ")";
-        std::cerr << "]}";
-    }  
 };
 
 struct BlockNode : ParseNode

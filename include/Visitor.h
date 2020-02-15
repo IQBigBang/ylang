@@ -77,7 +77,6 @@ public:
     Value* visitInclude(IncludeNode* context);
     Value* visitTypeDef(TypeDefNode* context);
     Value* visitFuncDef(FuncDefNode* context);
-    Value* visitExternFuncDef(ExternFuncDefNode* context);
     Value* visitBlock(BlockNode* context);
     Value* visitLet(LetNode* context);
     Value* visitSwitch(SwitchNode* context);

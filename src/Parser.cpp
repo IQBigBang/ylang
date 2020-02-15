@@ -27,15 +27,23 @@ std::vector<ParseNode*> Parser::parse()
 
             code.push_back(new TypeDefNode(l.getLine(), type_name, members));
 
-        } else if (peekKW("def"))
+        } else if (peekKW("fn"))
         {
-            eat(); // def
+            eat(); // fn
 
-            bool is_external = false;
-            if (peekKW("external"))
+            FuncAttributes attrs = {false, false};
+            if (peekKW("(")) // attributes
             {
-                is_external = true;
-                eat();
+                do {
+                    eat();
+                    std::string attr = expect(Lexeme::LEX_ID);
+                    if (attr == "external")
+                        attrs.External = true;
+                    else if (attr == "unmangled")
+                        attrs.Unmangled = true;
+                    else err::throwNonfatal("Invaldid function attribute", "Unrecognized function attribute '" + attr + "'", l.getLine());
+                } while (peekKW(","));
+                expectKW(")");
             }
             
             std::string rettype = expect(Lexeme::LEX_ID);
@@ -55,14 +63,11 @@ std::vector<ParseNode*> Parser::parse()
             }
             expectKW(")");
 
-            if (!is_external)
+            if (attrs.External)
             {
-                
-                ParseNode* body = parse_block();     
-                code.push_back(new FuncDefNode(l.getLine(), rettype, fname, args, body));
-            } else {
-                
-                code.push_back(new ExternFuncDefNode(l.getLine(), rettype, fname, args));
+                code.push_back(new FuncDefNode(l.getLine(), attrs, rettype, fname, args, nullptr));
+            } else {   
+                code.push_back(new FuncDefNode(l.getLine(), attrs, rettype, fname, args, parse_block()));
             }
         } else {
             err::throwNonfatal(

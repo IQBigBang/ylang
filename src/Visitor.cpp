@@ -15,8 +15,6 @@ Value *Visitor::visit(ParseNode *n)
         return visitTypeDef(dynamic_cast<TypeDefNode*>(n));
     if (dynamic_cast<FuncDefNode*>(n))
         return visitFuncDef(dynamic_cast<FuncDefNode *>(n));
-    if (dynamic_cast<ExternFuncDefNode*>(n))
-        return visitExternFuncDef(dynamic_cast<ExternFuncDefNode *>(n));
     if (dynamic_cast<BlockNode*>(n))
         return visitBlock(dynamic_cast<BlockNode*>(n));
     if (dynamic_cast<LetNode*>(n))
@@ -243,22 +241,6 @@ Value* Visitor::visitInclude(IncludeNode* context)
     return nullptr;
 }
 
-Value* Visitor::visitExternFuncDef(ExternFuncDefNode *context)
-{  
-    std::vector<Type*> ArgTypes;
-    for (auto a : context->args)
-        ArgTypes.push_back(getTypeFromStr(context->lineno, a.first));
-
-    FunctionType* FT
-        = FunctionType::get(getTypeFromStr(context->lineno, context->rettype), ArgTypes, false);
-    
-    Function* F = 
-        Function::Create(FT, Function::ExternalLinkage, mangleFuncName(context->fname, ArgTypes), TheModule.get());
-
-    return nullptr;
- 
-}
-
 Value* Visitor::visitFuncDef(FuncDefNode *context)
 {
     std::vector<Type*> ArgTypes;
@@ -269,7 +251,13 @@ Value* Visitor::visitFuncDef(FuncDefNode *context)
         = FunctionType::get(getTypeFromStr(context->lineno, context->rettype), ArgTypes, false);
         
     Function* F = 
-        Function::Create(FT, Function::ExternalLinkage, mangleFuncName(context->fname, ArgTypes), TheModule.get());
+        Function::Create(FT, Function::ExternalLinkage, 
+            // check if the function is unmangled
+            context->attrs.Unmangled ? context->fname : mangleFuncName(context->fname, ArgTypes), 
+            TheModule.get());
+    
+    if (context->attrs.External) // if it is external, don't generate body
+        return nullptr;
 
     // entry block
     BasicBlock* BB = BasicBlock::Create(TheContext, "entry", F);
@@ -520,10 +508,13 @@ Value *Visitor::visitCall(CallNode *context)
     // We don't need to check types, the mangling algorithm does that
     Function *F = TheModule->getFunction(mangleFuncName(context->fname, ArgTypes));
     if (!F)
-    {
-        // TODO print function prototype
-        err::throwNonfatal("Undefined function or constructor", "", context->lineno);
-        return nullptr;
+    {   // try if there is an unmangled version
+        F = TheModule->getFunction(context->fname);
+        if (!F) {
+            // TODO print function prototype
+            err::throwNonfatal("Undefined function or constructor", "", context->lineno);
+            return nullptr;
+        }
     }
     return (Value *)Builder.CreateCall(F, Args);
 }

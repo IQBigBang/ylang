@@ -3,7 +3,7 @@
 # Private STL defintions are registered by the compiler (often because they use pointer types)
 
 # Print a number
-def external Void print(Num n)
+fn (external) Void print(Num n)
 
 # Print a string
-def external Void print(Str s)
+fn (external) Void print(Str s)
