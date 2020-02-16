@@ -4,6 +4,7 @@
 #include <iostream>
 #include <istream> 
 #include <string>
+#include <vector>
 
 struct Lexeme
 {
@@ -29,6 +30,8 @@ public:
     Lexer(std::istream& inp) : inp(inp), line(1) {}
     Lexeme* next();
     int getLine();
+
+    const static std::vector<std::string> keywords; // array of reserved keywords
 
 private:
     std::istream& inp;

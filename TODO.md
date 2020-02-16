@@ -8,7 +8,7 @@ Bugfixes:
 - ~~Numbers not correctly passed into IR~~
 - ~~Comments not working~~
 - ~~Optimizations segfaulting~~
-- Correct decimal separator handling - Lexer.cpp:137
+- ~~Correct decimal separator handling~~
 
 
 
@@ -24,13 +24,13 @@ Enhancements:
 - ~~Structs~~
 - Syntax simplification
 - In-place assign (`+=`, `-=` ...)
-- External and unmangled functions
+- ~~External and unmangled functions~~
 - ~~More unary operations (`!`, ...) - Lexer.cpp:99~~
 - ~~Boolean operators (`and` ,`or`)~~
 - ~~Better error reporting~~
 - ~~Strings~~
 - ~~Line counting (for better errors)~~
-- Improve keyword and special symbol handling in the lexer
+- Improve keyword and special symbol handling in the lexer (partly finished)
 - ~~Do expression (multiple statements wrapper)~~
 - Make the language more "imperative" (partly finished)
 - ~~Add a `pass` statement (to allow for empty blocks) - added empty blocks instead~~

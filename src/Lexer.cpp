@@ -29,6 +29,9 @@ int Lexer::getLine()
     return this->line;
 }
 
+const std::vector<std::string> Lexer::keywords = 
+    {"fn", "type", "if", "else", "switch", "case", "let", "and", "or", "true", "false", "while", "include"};
+
 Lexeme *Lexer::next()
 {
     char c;
@@ -135,14 +138,16 @@ Lexeme *Lexer::next()
             if (c == '.')
             {
                 if (num.find(c) != std::string::npos)
-                { // TODO: this is not correct handling (e.g. 1.2.sq() -> sq(1.2))
-                    std::cerr << "The number cannot contain two decimal separators" << std::endl;
+                {
+                    // the number already contains a decimal separator,
+                    // so this dot is probably meant as a dot operator
                     break;
                 }
                 num.push_back('.');
             } else num.push_back(c);
         }
         inp.unget();
+        if (num[num.length() - 1] == '.') inp.unget(); // terminating dots are also not allowed
         return new Lexeme{.LType = Lexeme::LEX_NUMBER, .LVal = num};
     }
 
@@ -154,32 +159,10 @@ Lexeme *Lexer::next()
         while (std::isalnum(c = inp.get()) || c == '_')
             id.push_back(c);
         inp.unget();
-        if (id == "fn")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "fn"};
-        if (id == "type")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "type"};
-        if (id == "if")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "if"};
-        if (id == "else")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "else"};
-        if (id == "switch")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "switch"};
-        if (id == "case")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "case"};
-        if (id == "let")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "let"};
-        if (id == "and")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "and"};
-        if (id == "or")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "or"};
-        if (id == "true")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "true"};
-        if (id == "false")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "false"};
-        if (id == "while")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "while"};
-        if (id == "include")
-            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "include"};
+        // check if it is a keyword
+        for (std::string s : Lexer::keywords) {
+            if (id == s) return new Lexeme {.LType = Lexeme::LEX_KW_SYM, .LVal = id};
+        }
         return new Lexeme{.LType = Lexeme::LEX_ID, .LVal = id};
     }
 
