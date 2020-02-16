@@ -34,6 +34,17 @@ void _Wprint_Str(struct Str* s)
     printf("%s\n", s->buf);
 }
 
+struct Str* _Wadd_Str_Str(struct Str* s1, struct Str* s2)
+{
+    struct Str* dest = tgc_alloc(&GC, sizeof(struct Str));
+    dest->buf = tgc_alloc(&GC, s1->len + s2->len + 1);
+    memcpy(dest->buf, s1->buf, s1->len); // copy s1
+    memcpy(dest->buf + s1->len, s2->buf, s2->len); // copy s2
+    dest->buf[s1->len + s2->len] = 0; // null byte
+    dest->len = s1->len + s2->len;
+    return dest;
+}
+
 // -- Internal STL --
 
 // initialize a Str object from constant char array
@@ -50,17 +61,6 @@ struct Str* strfc(char* const_char, int len)
     s->len = len;
 }
 
-// concat two Str objects
-struct Str* strcc(struct Str* s1, struct Str* s2)
-{
-    struct Str* dest = tgc_alloc(&GC, sizeof(struct Str));
-    dest->buf = tgc_alloc(&GC, s1->len + s2->len + 1);
-    memcpy(dest->buf, s1->buf, s1->len); // copy s1
-    memcpy(dest->buf + s1->len, s2->buf, s2->len); // copy s2
-    dest->buf[s1->len + s2->len] = 0; // null byte
-    dest->len = s1->len + s2->len;
-    return dest;
-}
 
 int main(int argc, char** argv) {
     tgc_start(&GC, &argc);

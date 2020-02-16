@@ -117,9 +117,6 @@ Visitor::Visitor() : Builder(TheContext),
     // struct Str* strfc(char* const_char, int len)
     addSTLFunction(Str->getPointerTo(),
         {Type::getInt8PtrTy(TheContext), Type::getInt32Ty(TheContext)}, "strfc");
-    // struct Str* strcc(struct Str* s1, struct Str* s2)
-    addSTLFunction(Str->getPointerTo(),
-        { Str->getPointerTo(), Str->getPointerTo()}, "strcc");
 }
 
 void Visitor::addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name)
@@ -564,6 +561,17 @@ Value* Visitor::visitUnOp(UnaryOpNode* context)
         if (context->op == "!")
             return (Value*)Builder.CreateNot(inner);
     }
+
+    // look for operator overloads
+    std::string funcName;
+    if (context->op == "-") funcName = "neg";
+    else if (context->op == "!") funcName = "not";
+
+    Function* F = TheModule->getFunction(mangleFuncName(funcName, {inner->getType()}));
+
+    if (F) {
+        return (Value*)Builder.CreateCall(F, {inner});
+    }
     err::throwNonfatal("Invalid unary operation", "", context->lineno);
     return nullptr;
 }
@@ -609,15 +617,28 @@ Value* Visitor::visitBinOp(BinOpNode *context)
             return (Value*)Builder.CreateAnd(left, right);
         else if (op == "or")
             return (Value*)Builder.CreateOr(left, right);
-    } else if (leftTy->isPointerTy() && leftTy->getContainedType(0)->isStructTy()
-            && rightTy->isPointerTy() && rightTy->getContainedType(0)->isStructTy())
-    {
-        if (leftTy->getContainedType(0)->getStructName() == "Str"
-            && rightTy->getContainedType(0)->getStructName() == "Str"
-            && op == "+")
-        {  // addition of strings = concatenation
-            return (Value*)Builder.CreateCall(TheModule->getFunction("strcc"), {left, right});
-        }
+    }
+
+    // now look for operator-overloads
+    std::string funcName;
+    if (op == "+") funcName = "add";
+    else if (op == "-") funcName = "sub";
+    else if (op == "*") funcName = "mul";
+    else if (op == "/") funcName = "div";
+    else if (op == "^") funcName = "pow";
+    else if (op == "==") funcName = "eql";
+    else if (op == "!=") funcName = "neq";
+    else if (op == "<") funcName = "lower";
+    else if (op == "<=") funcName = "loweq";
+    else if (op == ">") funcName = "greater";
+    else if (op == ">=") funcName = "greateq";
+    else if (op == "and") funcName = "andop";
+    else if (op == "or") funcName = "orop";
+
+    Function* F = TheModule->getFunction(mangleFuncName(funcName, {leftTy, rightTy}));
+
+    if (F) {
+        return (Value*)Builder.CreateCall(F, {left, right});
     }
 
     err::throwNonfatal("Invalid binary operation", "", context->lineno);

@@ -7,3 +7,6 @@ fn (external) Void print(Num n)
 
 # Print a string
 fn (external) Void print(Str s)
+
+# Join two strings
+fn (external) Str add(Str s1, Str s2)

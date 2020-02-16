@@ -55,7 +55,7 @@ New features:
 - ~~Pointers (_removed goal_)~~
 - __Extend std library__
 - Type inference
-- Operator overloading (and perhaps more operators)
+- ~~Operator overloading~~ (and perhaps more operators)
 - ~~CLI~~
 - Extend CLI
 - ~~Garbage collector~~
