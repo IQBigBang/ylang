@@ -65,7 +65,7 @@ public:
         Machine.release();
     }
     
-    void optimize(bool doFullOptimizations);
+    void optimize(int optLevel, int sizeLevel, bool inlinerOn);
 
     void addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name);
 

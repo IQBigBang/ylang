@@ -7,15 +7,28 @@
 #include <fstream>
 
 void run(int argc, char** argv) {
-    args::ArgumentParser argParser("YLang compiler");
+    args::ArgumentParser argParser("Ylang compiler");
+
     args::Positional<std::string> source(argParser, "source", "Source file path", args::Options::Required);
-    args::Group outputFormatsGroup(argParser, "Output file type formats", args::Group::Validators::AtMostOne);
+    args::ValueFlag<std::string> output(argParser, "output", "Output file path", {'o'});
+
+    args::Group outputFormatsGroup(argParser, "Output formats", args::Group::Validators::AtMostOne);
     args::Flag outputFormatIR(outputFormatsGroup, "output IR", "Emit LLVM Immediate Representation", {"ir"});
     args::Flag outputFormatObj(outputFormatsGroup, "output object", "Emit native object file", {"obj"});
     args::Flag outputFormatRun(outputFormatsGroup, "run immediately", "Run code immediately after compilation and linking (keeps the compiled executable)", {'r'});
+
+    args::Group optimizationsGroup(argParser, "Optimization settings", args::Group::Validators::AtMostOne);
+    args::Flag optimizationsZero(optimizationsGroup, "no optimizations", "Disable all code optimizations (including LTO)", {"O0"});
+    args::Flag optimizationsMin(optimizationsGroup, "minimal optimizations", "Enable only basic optimization passes (default)", {"O1"});
+    args::Flag optimizationsFull(optimizationsGroup, "full optimizations", "Enable full optimizations (enables inliner)", {"O2"});
+    args::Flag optimizationsSize(optimizationsGroup, "optimize for size", "Enables optimizations to reduce code size rather than faster execution", {"Os"});
+    args::Flag noInliner(argParser, "no inliner", "Disable the inliner", {"no-inline"});
+    args::Flag noLTO(argParser, "no lto", "Disables Link-Time-Optimization", {"no-lto"});
+
+    args::Flag noGC(argParser, "no gc", "Prevents the garbage collector from being linked in. Correct linking requires you to supply a custom `alloc` function", {"no-gc"});
+    args::Flag noStd(argParser, "no stdlib", "Prevents the standard library from being linked in. Garbage collector is still used (unless specified otherwise)", {"no-std"});
+
     args::HelpFlag help(argParser, "show the help", "Print the help message", {'h', "help"});
-    args::Flag noOptimizations(argParser, "no optimizations", "Disable code optimizations", {"O0"});
-    args::ValueFlag<std::string> output(argParser, "output", "Output file path", {'o'});
 
     try
     {
@@ -49,27 +62,30 @@ void run(int argc, char** argv) {
     Lexer lexer(stream);
     Parser parser(lexer);
     std::vector<ParseNode*> n = parser.parse();
-
-    /*for (auto& pn : n)
-        pn->print();*/
     
     Visitor visitor;
 
     std::string outfile;
-    if (outputFormatRun) outfile = "bin";
-    else if (output) outfile = args::get(output); 
-    else {
-        if (outputFormatIR)
-            outfile = "bin.ll";
-        else if (outputFormatObj)
-            outfile = "bin.o";
-        else outfile = "bin";
-    }
+    if (output) 
+        outfile = args::get(output); 
+    else if (outputFormatIR)
+        outfile = "bin.ll";
+    else if (outputFormatObj)
+        outfile = "bin.o";
+    else outfile = "bin";
     
     for (auto& pn : n)
         visitor.visit(pn);
-    
-    visitor.optimize(!noOptimizations);
+
+    if (!optimizationsZero) { // if opt = zero, don't even call the optimize function
+        if (optimizationsFull) {
+            visitor.optimize(2, 1, !noInliner);
+        } else if (optimizationsSize) {
+            visitor.optimize(1, 2, !noInliner);
+        } else { // default
+            visitor.optimize(1, 0, false);
+        }
+    }
 
     if (outputFormatIR)
         visitor.print(outfile);
@@ -78,10 +94,17 @@ void run(int argc, char** argv) {
     else {
         visitor.Emit("tmp.o");
         std::string cmd = "clang "; // use clang
-        cmd.append("-O2 -flto=thin "); // optimizations (LTO is very important!)
+        if (!optimizationsZero) {
+            cmd.append("-O2 ");
+            if (!noLTO) {
+                cmd.append("-flto=thin ");
+            }
+        }
         cmd.append("tmp.o "); // emitted temporary object file
-        cmd.append(STDLIBDIR "std.o "); // link standard library
-        cmd.append(STDLIBDIR "gc.o "); // link garbage collector
+        if (!noStd)
+            cmd.append(STDLIBDIR "std.o "); // link standard library
+        if (!noGC)
+            cmd.append(STDLIBDIR "gc.o "); // link garbage collector
         cmd.append("-o " + outfile); // output file
         system(cmd.c_str());
         system("rm tmp.o");

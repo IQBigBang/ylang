@@ -127,19 +127,16 @@ void Visitor::addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name
     );
 }
 
-void Visitor::optimize(bool doFullOptimizations) // 0 - minimal optimizations, 1 - full optimizations
+void Visitor::optimize(int optLevel, int sizeLevel, bool inlinerOn)
 {
     legacy::FunctionPassManager TheFunctionPassManager(TheModule.get());
     legacy::PassManager TheModulePassManager;
     PassManagerBuilder PMB;
-    if (doFullOptimizations) {
-        PMB.OptLevel = 3;
-        PMB.SizeLevel = 2;
-        InlineParams ip = getInlineParams(3, 2);
+    PMB.OptLevel = optLevel;
+    PMB.SizeLevel = sizeLevel;
+    if (inlinerOn) { 
+        InlineParams ip = getInlineParams(optLevel, sizeLevel);
         PMB.Inliner = createFunctionInliningPass(ip);
-    } else {
-        PMB.OptLevel = 1;
-        PMB.SizeLevel = 0;
     }
     Machine->adjustPassManager(PMB);
     

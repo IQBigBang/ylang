@@ -38,6 +38,7 @@ Enhancements:
 - Update to non-legacy pass manager - Visitor.cpp:170
 - ~~`include` syntax (for multiple files)~~
 - Add more system types (int, pointer)
+- Add `assert` and other self-testing techniques
 
 
 
@@ -57,7 +58,8 @@ New features:
 - Type inference
 - ~~Operator overloading~~ (and perhaps more operators)
 - ~~CLI~~
-- Extend CLI
+- ~~Extend CLI~~
+- Cross compilation (custom target-triple)
 - ~~Garbage collector~~
 - ~~Write custom lexer nad parser~~
 - ~~Minimal std integration~~
