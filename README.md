@@ -22,8 +22,12 @@ For a list of features to be implemented, see `TODO.md`
 
 ### Installation
 
-If you'd want to (for whatever reason) try out the compiler yourself, clone and build using `make`. Then, run  `bin/ylang whateverfile.yy` . Use flag `-o output` to specify output file, `--ir` to output LLVM IR and `-r` to run the compiled file.
-
+If you'd want to (for whatever reason) try out the compiler yourself, use the following commands for installation:
+```
+sudo apt install make llvm-9 clang-9
+git clone https://github.com/IQBigBang/ylang.git
+cd ylang && make -j
+```
 The compiler requires the LLVM toolchain to be installed and has only been tested on Linux (but it might  work on Mac too).
 
 ### Example

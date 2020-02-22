@@ -9,6 +9,8 @@ Bugfixes:
 - ~~Comments not working~~
 - ~~Optimizations segfaulting~~
 - ~~Correct decimal separator handling~~
+- Power operator (for numbers) - currently unhandled
+- Assignments into members (e.g. x->y = 2)
 
 
 

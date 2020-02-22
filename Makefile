@@ -1,5 +1,5 @@
 CXX = clang++-9
-CPPFLAGS = -g `llvm-config --cxxflags --ldflags --libs --libfiles --system-libs` -fexceptions --std=c++14
+CPPFLAGS = -g `llvm-config-9 --cxxflags --ldflags --libs --libfiles --system-libs` -fexceptions --std=c++14
 
 OBJECTS = Lexer.o Parser.o Visitor.o main.o Errors.o
 OBJDIR = obj/
@@ -18,7 +18,10 @@ PREFIXED_OBJECTS = $(addprefix $(OBJDIR),$(OBJECTS))
 
 CPPFLAGS := $(CPPFLAGS) -DSTDLIBDIR="\"$(CURDIR)/stdlib/\""
 
-all: $(OUTFILE)
+all: prepare $(OUTFILE)
+
+prepare:
+	mkdir -p obj bin 
 
 $(OBJDIR)%.o: $(SRCDIR)%.cpp
 	$(CXX) -c $(CPPFLAGS) -Iinclude/ -Wno-unused-command-line-argument -o $@ $<
