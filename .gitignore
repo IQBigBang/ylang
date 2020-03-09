@@ -5,3 +5,4 @@ obj/*
 ytest.o
 test/*
 stdlib/*.o
+commitlint.config.js
