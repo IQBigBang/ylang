@@ -117,6 +117,8 @@ Visitor::Visitor() : Builder(TheContext),
     // struct Str* strfc(char* const_char, int len)
     addSTLFunction(Str->getPointerTo(),
         {Type::getInt8PtrTy(TheContext), Type::getInt32Ty(TheContext)}, "strfc");
+
+    IncludedModules.push_back(err::fileName.substr(0, err::fileName.length() - 3)); // add current file as a module
 }
 
 void Visitor::addSTLFunction(Type* retType, ArrayRef<Type*> argsType, Twine name)
