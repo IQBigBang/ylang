@@ -41,6 +41,9 @@ Enhancements:
 - ~~`include` syntax (for multiple files)~~
 - Add more system types (int, pointer)
 - Add `assert` and other self-testing techniques
+- Add `break` in `while`
+- ~~Support for `if` without an `else` case (implicit empty block)~~
+- Add `discard` expression (for returning Void)
 
 
 

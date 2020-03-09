@@ -116,6 +116,12 @@ ParseNode* Parser::parse_expr()
         eat(); // if
         ParseNode* cond = parse_expr();
         ParseNode* thenT = parse_block();
+        if (!peekKW("else")) // implicit else
+        {
+            std::vector<ParseNode*> empty_vector;
+            BlockNode* empty_block = new BlockNode(l.getLine(), empty_vector);
+            return new IfNode(l.getLine(), cond, thenT, empty_block);
+        }
         expectKW("else");
         ParseNode* elseT = parse_block();
         return new IfNode(l.getLine(), cond, thenT, elseT);
