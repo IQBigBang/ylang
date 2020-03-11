@@ -34,6 +34,8 @@ public:
             | 'switch' lhs=expr {'case' expr ':' block} 'else' ':' block
             | 'if' cond=expr thenT=block 'else' elseT=block
             | 'while' cond=expr body=block
+            | val=mathExpr '=' val=mathExpr
+            | mathExpr
     */
     ParseNode* parse_expr();
 

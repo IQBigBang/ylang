@@ -148,7 +148,14 @@ ParseNode* Parser::parse_expr()
     } else if (peekKW("while")) {
         eat(); // while
         return new WhileNode(l.getLine(), parse_expr(), parse_block());
-    } else return parse_mathexpr();
+    } else {
+        ParseNode* expr = parse_mathexpr();
+        if (peekKW("=")) {
+            eat(); // =
+            ParseNode* value = parse_expr();
+            return new AssignNode(l.getLine(), expr, value);
+        } else return expr;
+    }
 }
 
 ParseNode* Parser::parse_mathexpr()

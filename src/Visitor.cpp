@@ -19,6 +19,8 @@ Value *Visitor::visit(ParseNode *n)
         return visitBlock(dynamic_cast<BlockNode*>(n));
     if (dynamic_cast<LetNode*>(n))
         return visitLet(dynamic_cast<LetNode*>(n));
+    if (dynamic_cast<AssignNode*>(n))
+        return visitAssign(dynamic_cast<AssignNode*>(n));
     if (dynamic_cast<SwitchNode*>(n))
         return visitSwitch(dynamic_cast<SwitchNode *>(n));
     if (dynamic_cast<WhileNode*>(n))
@@ -30,7 +32,7 @@ Value *Visitor::visit(ParseNode *n)
     if (dynamic_cast<UnaryOpNode*>(n))
         return visitUnOp(dynamic_cast<UnaryOpNode*>(n));
     if (dynamic_cast<MemberAccessNode*>(n))
-        return visitMemberAccess(dynamic_cast<MemberAccessNode *>(n));
+        return visitMemberAccess(dynamic_cast<MemberAccessNode *>(n), false);
     if (dynamic_cast<BoolNode*>(n))
         return visitBool(dynamic_cast<BoolNode *>(n));
     if (dynamic_cast<NumberNode*>(n))
@@ -38,11 +40,21 @@ Value *Visitor::visit(ParseNode *n)
     if (dynamic_cast<StringNode*>(n))
         return visitString(dynamic_cast<StringNode *>(n));
     if (dynamic_cast<VariableNode*>(n))
-        return visitVariable(dynamic_cast<VariableNode *>(n));
+        return visitVariable(dynamic_cast<VariableNode *>(n), false);
     if (dynamic_cast<CallNode*>(n))
         return visitCall(dynamic_cast<CallNode *>(n));
     err::throwFatal("Internal error", 
                     "Invalid parse node type: " + std::string(typeid(n).name()));
+    return nullptr;
+}
+
+Value* Visitor::visit_lval(ParseNode* n)
+{
+    if (dynamic_cast<MemberAccessNode*>(n))
+        return visitMemberAccess(dynamic_cast<MemberAccessNode *>(n), true);
+    if (dynamic_cast<VariableNode*>(n))
+        return visitVariable(dynamic_cast<VariableNode *>(n), true);
+    err::throwNonfatal("Invalid expression on the left side of an assignment", "", n->lineno);
     return nullptr;
 }
 
@@ -480,14 +492,30 @@ Value* Visitor::visitLet(LetNode *context) {
         return nullptr;
 
     AllocaInst* all;
-    if (NamedValues.count(context->name) == 0)
+    if (NamedValues.count(context->name) != 0)
+    {
+        err::throwNonfatal("Multiple 'let' definition", "", context->lineno);
+    } 
+    else 
     {
         all = putAllocaInst(V->getType(), context->name);
         NamedValues[context->name] = all;
-    } else all = NamedValues[context->name];
+    }
 
     Builder.CreateStore(V, all);
     return V;
+}
+
+Value* Visitor::visitAssign(AssignNode* context) {
+    Value* lval = visit_lval(context->var);
+    Value* rval = visit(context->val);
+    if (rval->getType()->getPointerTo() != lval->getType())
+    {
+        err::throwNonfatal("Type error", "Invalid type assigned", context->lineno);
+        return nullptr;
+    }
+    Builder.CreateStore(rval, lval);
+    return rval;
 }
 
 Value *Visitor::visitCall(CallNode *context)
@@ -526,7 +554,7 @@ Value* Visitor::visitBool(BoolNode *context)
     
 }
 
-Value* Visitor::visitMemberAccess(MemberAccessNode *context) {
+Value* Visitor::visitMemberAccess(MemberAccessNode *context, bool lval) {
     Value* obj = visit(context->obj);
     if (!obj->getType()->isPointerTy() || !obj->getType()->getContainedType(0)->isStructTy()
                                 || obj->getType()->getContainedType(0)->getStructName() == "Str")
@@ -545,7 +573,9 @@ Value* Visitor::visitMemberAccess(MemberAccessNode *context) {
     auto member_ptr = GetElementPtrInst::CreateInBounds(obj, 
         {getInt32Const(0), getInt32Const(index)}, 
     "", Builder.GetInsertBlock());
-    return Builder.CreateLoad(member_ptr, context->member);
+    if (lval) // if lvalue, don't load but return the address so that it can be stored
+        return (Value*)member_ptr;
+    return (Value*)Builder.CreateLoad(member_ptr, context->member);
 }
 
 Value* Visitor::visitUnOp(UnaryOpNode* context)
@@ -652,12 +682,13 @@ Value* Visitor::visitString(StringNode *context) {
     });
 }
 
-Value* Visitor::visitVariable(VariableNode *context) {
+Value* Visitor::visitVariable(VariableNode *context, bool lval) {
     if (NamedValues.count(context->var) == 0)
     {
         err::throwNonfatal("Undefined variable `" + context->var + "`", "", context->lineno);
         return nullptr;
     }
-
+    if (lval) // if lval, don't load the value
+        return NamedValues[context->var];
     return (Value*)Builder.CreateLoad(NamedValues[context->var], context->var);
 }

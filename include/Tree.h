@@ -7,6 +7,7 @@
 
 struct ParseNode
 {
+    int lineno;
     virtual ~ParseNode() {}
     virtual void print() = 0;
 };
@@ -90,6 +91,23 @@ struct LetNode : ParseNode
     virtual void print()
     {
         std::cerr << "LetNode{name=" << name << ", val=";
+        val->print();
+        std::cerr << "}";
+    }
+};
+
+struct AssignNode : ParseNode
+{
+    int lineno;
+    ParseNode* var;
+    ParseNode* val;
+    AssignNode(int lineno, ParseNode* var, ParseNode* val) : lineno(lineno), var(var), val(val) {}
+
+    virtual void print()
+    {
+        std::cerr << "AssignNode{var=";
+        var->print();
+        std::cerr << ", val=";
         val->print();
         std::cerr << "}";
     }

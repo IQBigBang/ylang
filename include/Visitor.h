@@ -71,6 +71,8 @@ public:
 
     // Visit a node of unknown type
     Value* visit(ParseNode* n);
+    // Visit a node on the left side of an assignment
+    Value* visit_lval(ParseNode* n);
    /**
    * Visit parse trees produced by Parser.
    */
@@ -79,16 +81,17 @@ public:
     Value* visitFuncDef(FuncDefNode* context);
     Value* visitBlock(BlockNode* context);
     Value* visitLet(LetNode* context);
+    Value* visitAssign(AssignNode* context);
     Value* visitSwitch(SwitchNode* context);
     Value* visitIf(IfNode* context);
     Value* visitWhile(WhileNode* context);
     Value* visitBinOp(BinOpNode* context);
     Value* visitUnOp(UnaryOpNode* context);
-    Value* visitMemberAccess(MemberAccessNode* context);
+    Value* visitMemberAccess(MemberAccessNode* context, bool lval); // This node can be used on the left side of assignment (e.g. a->b = 2)
     Value* visitBool(BoolNode* context);
     Value* visitNumber(NumberNode* context);
     Value* visitString(StringNode* context);
-    Value* visitVariable(VariableNode* context);
+    Value* visitVariable(VariableNode* context, bool lval); // This node can be used on the left side of assignment (e.g. c = 3)
     Value* visitCall(CallNode* context);
 
     // line number for debugging purposes

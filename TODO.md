@@ -11,6 +11,9 @@ Bugfixes:
 - ~~Correct decimal separator handling~~
 - Power operator (for numbers) - currently unhandled
 - Assignments into members (e.g. x->y = 2)
+- Invalid comment handling at the end of the file
+- Line counting not working properly
+- Line number reporting in `visit_lval`
 
 
 
@@ -44,6 +47,7 @@ Enhancements:
 - Add `break` in `while`
 - ~~Support for `if` without an `else` case (implicit empty block)~~
 - Add `discard` expression (for returning Void)
+- ~~Add proper assignments (without `let`)~~
 
 
 
