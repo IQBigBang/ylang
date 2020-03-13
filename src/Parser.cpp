@@ -154,6 +154,22 @@ ParseNode* Parser::parse_expr()
             eat(); // =
             ParseNode* value = parse_expr();
             return new AssignNode(l.getLine(), expr, value);
+        } else if (peekKW("+=")) {
+            eat();
+            ParseNode* value = parse_expr();
+            return new AssignNode(l.getLine(), expr, new BinOpNode(l.getLine(), expr, "+", value));
+        } else if (peekKW("-=")) {
+            eat();
+            ParseNode* value = parse_expr();
+            return new AssignNode(l.getLine(), expr, new BinOpNode(l.getLine(), expr, "-", value));
+        } else if (peekKW("*=")) {
+            eat();
+            ParseNode* value = parse_expr();
+            return new AssignNode(l.getLine(), expr, new BinOpNode(l.getLine(), expr, "*", value));
+        } else if (peekKW("/=")) {
+            eat();
+            ParseNode* value = parse_expr();
+            return new AssignNode(l.getLine(), expr, new BinOpNode(l.getLine(), expr, "/", value));
         } else return expr;
     }
 }

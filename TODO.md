@@ -28,7 +28,7 @@ Enhancements:
 - Better `if` statements
 - ~~Structs~~
 - Syntax simplification
-- In-place assign (`+=`, `-=` ...)
+- ~~In-place assign (`+=`, `-=` ...)~~
 - ~~External and unmangled functions~~
 - ~~More unary operations (`!`, ...) - Lexer.cpp:99~~
 - ~~Boolean operators (`and` ,`or`)~~

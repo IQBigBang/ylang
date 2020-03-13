@@ -57,19 +57,39 @@ Lexeme *Lexer::next()
     }
 
     if (c == '+')
+    {
+        inp.get(c);
+        if (c == '=') // +=
+            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "+="};
+        inp.unget(); // move back
         return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "+"};
+    }
     if (c == '-')
     {
         inp.get(c);
         if (c == '>')
             return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "->"};
-        inp.unget(); // if it's not an arrow, the second char is yet to be parsed
+        if (c == '=') // -=
+            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "-="};
+        inp.unget(); // if it's not an arrow or -=, the second char is yet to be parsed
         return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "-"};
     }
     if (c == '*')
+    {
+        inp.get(c);
+        if (c == '=') // *=
+            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "*="};
+        inp.unget(); // move back
         return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "*"};
+    }
     if (c == '/')
+    {
+        inp.get(c);
+        if (c == '=') // /=
+            return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "/="};
+        inp.unget(); // move back
         return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "/"};
+    }
     if (c == '^')
         return new Lexeme{.LType = Lexeme::LEX_KW_SYM, .LVal = "^"};
     if (c == '(')
