@@ -33,7 +33,9 @@ The compiler requires the LLVM toolchain to be installed and has only been teste
 ### Example
 
 ```
-def Num fact_rec(Num n) {
+include std
+
+fn Num fact_rec(Num n) {
 	if n == 1
 		1
 	else {
@@ -41,16 +43,16 @@ def Num fact_rec(Num n) {
 	}
 }
 
-def Num fact_loop(Num n) {
+fn Num fact_loop(Num n) {
 	let res = 1;
 	while n > 1 {
-		let res = res * n; # *= is not yet supported
-		let n = n - 1;
+		res *= n;
+		n -= 1;
 	};
 	res
 }
 
-def Void main() { # Main function
+fn Void main() { # Main function
 	let rec_res = fact_rec(14);
 	let loop_res = fact_loop(14);
 	if rec_res != loop_res {

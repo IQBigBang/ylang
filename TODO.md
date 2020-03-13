@@ -48,7 +48,7 @@ Enhancements:
 - ~~Support for `if` without an `else` case (implicit empty block)~~
 - Add `discard` expression (for returning Void)
 - ~~Add proper assignments (without `let`)~~
-- `sizeof` expression
+- ~~`sizeof` expression~~
 
 
 
