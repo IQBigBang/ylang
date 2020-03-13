@@ -523,6 +523,18 @@ Value *Visitor::visitCall(CallNode *context)
     std::vector<Value *> Args;
     std::vector<Type *> ArgTypes;
 
+    if (context->fname == "sizeof")
+    {
+        if (context->args.size() != 1)
+        {
+            err::throwNonfatal("Sizeof expression requires exactly one argument", "", context->lineno);
+            return nullptr;
+        }
+        Value* V = visit(context->args[0]);
+        uint64_t size = TheModule->getDataLayout().getTypeAllocSize(V->getType());
+        return (Value*)ConstantFP::get(TheContext, APFloat((double)size));
+    }
+
     for (auto &a : context->args)
     {
         Args.push_back(visit(a));

@@ -44,10 +44,11 @@ Enhancements:
 - ~~`include` syntax (for multiple files)~~
 - Add more system types (int, pointer)
 - Add `assert` and other self-testing techniques
-- Add `break` in `while`
+- Add `break` and `continue` in `while`
 - ~~Support for `if` without an `else` case (implicit empty block)~~
 - Add `discard` expression (for returning Void)
 - ~~Add proper assignments (without `let`)~~
+- `sizeof` expression
 
 
 
@@ -58,13 +59,15 @@ New features:
 - `for` statement
 - Type casting
 - `match` statement (simple pattern matching)
-- **Generics**
+- Generics
 - **Add tests!**
 - __Documentation__
 - Sum types
 - ~~Pointers (_removed goal_)~~
 - __Extend std library__
 - Type inference
+- Tuples
+- Interfaces
 - ~~Operator overloading~~ (and perhaps more operators)
 - ~~CLI~~
 - ~~Extend CLI~~
